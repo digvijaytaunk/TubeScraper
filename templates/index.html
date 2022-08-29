@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-md text-white">
+
+    <form class="form-inline" action="/" method="post">
+        <div class="form-group">
+            <label for="videosUrl" class="mb-5">Videos Url:</label>
+            <input type="text" class="form-control" id="videosUrl" name="videosUrl">
+        </div>
+        <button type="submit" class="btn btn-outline-info btn-lg px-4 me-sm-3 fw-bold mt-5">Submit</button>
+
+    </form>
+
+    <h2>{{data}}</h2>
+
+</div>
+
+<!--<form class="form-inline">-->
+<!--    <label for="inputUrl" class="sr-only text-secondary">Videos URL</label>-->
+<!--    <input type="text" class="form-control" id="inputUrl" placeholder="Url">-->
+<!--  <button type="submit" class="btn btn-primary mb-2">Submit</button>-->
+<!--</form>-->
+<!--    <button type="button" class="btn btn-outline-info btn-lg px-4 me-sm-3 fw-bold">Custom button</button>-->
+<!--    <button type="button" class="btn btn-outline-light btn-lg px-4">Secondary</button>-->
+
+
+
+
+{% endblock %}
