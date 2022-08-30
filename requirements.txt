@@ -5,3 +5,5 @@ bs4==0.0.1
 pytube==12.1.0
 pymongo
 mysql-connector-python
+google-api-python-client
+gunicorn==20.0.4
