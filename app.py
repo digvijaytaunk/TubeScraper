@@ -7,20 +7,21 @@ app = Flask(__name__)
 # TODO Add doc string
 
 
-@app.get('/')
+@app.route('/', methods=['GET', 'POST'])
 def root():
-    return render_template('index.html')
+    if request.method == 'GET':
+        return render_template('index.html')
 
+    if request.method == 'POST':
+        url = request.form.get('videosUrl')
+        if not validate_url(url):
+            return render_template('index.html', data={'status': "URL not recognised. "
+                                                                 "Please provide youtube video link only. "
+                                                                 "Must contain 'youtube.com/watch' string"})
 
-@app.route('/', methods=['POST'])
-def process():
-    url = request.form.get('videosUrl')
-    if not validate_url(url):
-        return render_template('index.html', data={'status': "URL not recognised. Please provide youtube video link only."})
-
-    yt = YoutubeResource(url)
-    result = yt.scrape()
-    return render_template('index.html', data=result)
+        yt = YoutubeResource(url)
+        result = yt.scrape()
+        return render_template('index.html', data=result)
 
 
 def validate_url(url: str) -> bool:
@@ -29,10 +30,9 @@ def validate_url(url: str) -> bool:
     :param url: str
     :return: Bool
     """
-    return True if 'watch' in url else False
+    string_to_find = 'youtube.com/watch'
+    return True if string_to_find in url else False
 
 
 if __name__ == '__main__':
-    # TODO Handle this type of request "https://www.youtube.com/watch?v=8cm1x4bC610&ab_channel=Telusko"
-    # Use GET request to parse variable
     app.run(debug=True)

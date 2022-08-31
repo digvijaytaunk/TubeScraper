@@ -39,18 +39,15 @@ class YoutubeResource:
         res = self._input_video_response()
         return res['items'][0]['snippet']['channelTitle']
 
-
     def scrape(self) -> Dict:
         """
         Public method to start all data processing
         :return:
         """
         video_id = self.extract_video_id()
-        if video_id == '':
-            return {}  # TODO make blank Data Object
 
-        if API_KEY == '' or API_KEY is None:
-            return {'status': 'Failed to get Youtube API key'}
+        if video_id == '' or API_KEY == '' or API_KEY is None:
+            return {'status': 'Failed to process. Check Video ID or Youtube Data API Key'}
 
         channel_title = self.get_channel_title()
         channel_uid = self.get_channel_id()
@@ -63,16 +60,20 @@ class YoutubeResource:
 
         return data
 
-        # channel_title = video['snippet']['channelTitle']
-        # no_of_views = response['items'][0]['statistics']['viewCount']
-        # likes = response['items'][0]['statistics']['likeCount']
-
-    def get_channel_detail_from_input_url(self, vid):
+    def get_channel_detail_from_input_url(self, v_id: str) -> Dict:
+        """
+        Extract Channel ID & Channel Title from provided video ID and return a dictionary
+        :param v_id: video ID
+        :return: {channel_id: value, channel_title: value}
+        """
         try:
-            request = self.youtube.videos().list(part="snippet,contentDetails,statistics", id=vid)
+            request = self.youtube.videos().list(part="snippet,contentDetails,statistics", id=v_id)
             res = request.execute()
-            channel_id = res['items']['snippet']['channelId']
-            channel_title = res['items']['snippet']['channelTitle']
+
+            first_item = res['items'][0]
+            channel_id = first_item['snippet']['channelId']
+            channel_title = first_item['snippet']['channelTitle']
+
             return {'channel_id': channel_id, 'channel_title': channel_title}
         except Exception as e:
             print(e)
@@ -82,10 +83,16 @@ class YoutubeResource:
         pass
 
     def extract_video_id(self) -> str:
-        if 'watch?' in self._input_url:
-            parts = self._input_url.split("?")
-            value = parts[-1].split("v=")
-            return value[-1] if len(value) > 0 else ''
+        if '?' in self._input_url:
+            parts = self._input_url.split('?')
+            args = parts[-1]
+            args_parts = args.split('&')
+            dic = {}
+            for i in range(len(args_parts)):
+                args_n_vals = args_parts[i].split('=')
+                dic[args_n_vals[0]] = args_n_vals[1]
+
+            return dic.get('v')
 
     def get_channel_activities(self):
         pass
@@ -103,3 +110,6 @@ if __name__ == "__main__":
     t = yt.get_channel_title()
     id = yt.get_channel_id()
     print(t, id)
+
+    details = yt.get_channel_detail_from_input_url('N182e5GNyH4')
+    print(details)
