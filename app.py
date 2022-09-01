@@ -21,7 +21,8 @@ def root():
 
         yt = YoutubeResource(url)
         result = yt.scrape()
-        return render_template('index.html', data=result)
+
+        return render_template('result.html', data=result)
 
 
 def validate_url(url: str) -> bool:

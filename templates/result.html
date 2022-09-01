@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  {% if data['vidCount'] < 50 %}
+    <p class="align-items-center text-danger"> Something went wrong while extracting data. please refresh page or retry again with another link</p>
+  {% endif %}
+  <table id="data" class="container table text-light" >
+    <thead>
+      <tr>
+        <th>Sr. No</th>
+        <th>Published On</th>
+        <th>Title</th>
+        <th>Likes</th>
+        <th>Views</th>
+        <th>Comments</th>
+        <th>Watch Url</th>
+        <th>Thumbnail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for video in data['videos'] %}
+        <tr class="container table text-light">
+          <td class="align-middle">{{ loop.index }}</td>
+          <td class="align-middle">{{ video.publishedAt }}</td>
+          <td class="align-middle">{{ video.title }}</td>
+          <td class="align-middle">{{ video.likes }}</td>
+          <td class="align-middle">{{ video.views }}</td>
+          <td class="align-middle">{{ video.comment_count }}</td>
+          <td class="align-middle"><a href="{{ video.watch_url }}">{{ video.watch_url }}</a></td>
+          <td><img src="{{ video.thumbnail_url }}" alt="{{ video.thumbnail_url }}" width="120" height="90" /></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

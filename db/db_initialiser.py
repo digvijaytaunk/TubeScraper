@@ -1,3 +1,5 @@
+create_database = 'CREATE DATABASE ineuron'
+
 youtuber_table_query = 'CREATE TABLE `sys`.`youtuber` (' \
                        '`index` INT NOT NULL AUTO_INCREMENT, ' \
                        '`channel_id` VARCHAR(45) NOT NULL, ' \
