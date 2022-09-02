@@ -17,6 +17,8 @@ MONGO_USER = os.getenv('MONGO_DB_CLOUD_USER')
 MONGO_PASSWORD = os.getenv('MONGO_DB_CLOUD_PASSWORD')
 MONGO_DB_NAME = 'tubescraper_db'
 MONGO_DB_COLLECTION_NAME = 'comments_collection'
+MONGO_CONNECTION_STRING = f"mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@cluster0.malrj.mongodb.net/?retryWrites=true&w=majority"
+
 
 class STATUS(Enum):
     FAIL = 'fail'

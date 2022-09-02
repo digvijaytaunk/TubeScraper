@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 
+from db.db_initialiser import youtuber_create_table_query, videos_create_table_query
 from globs import MY_SQL_HOST, MY_SQL_PASSWORD, MY_SQL_USER, MY_SQL_DATABASE, MY_SQL_YOUTUBER_TABLE_NAME, STATUS, \
     MY_SQL_VIDEOS_TABLE_NAME
 import mysql.connector as connection
@@ -97,11 +98,11 @@ class MySql:
     def _write_to_videos(self, video_list: List[Video]) -> bool:
         value_params = []
         for video in video_list:
-            value_params.append(f'("{video.channel_id}", "{video.videoId}", "{video.title}", "{video.watch_url}", "s3_link", "{video.likes}", "{video.comment_count}", "{video.thumbnail_url}")')
+            value_params.append(f'("{video.channel_id}", "{video.videoId}", "{video.title}", "{video.watch_url}", "s3_link", "{video.likes}", "{video.comment_count}", "{video.views}","{video.thumbnail_url}")')
 
         values = ', '.join(value_params)
         query = f'INSERT INTO {MY_SQL_DATABASE}.{MY_SQL_VIDEOS_TABLE_NAME} ' \
-                f'(`channel_id`,`video_id`, `title`, `youtube_link`, `s3_link`, `likes`, `comments_count`, `thumbnail_link`) ' \
+                f'(`channel_id`,`video_id`, `title`, `youtube_link`, `s3_link`, `likes`, `comments_count`, `views`, `thumbnail_link`) ' \
                 f'VALUES {values}'
         try:
             self._cursor.execute(query)
@@ -111,6 +112,28 @@ class MySql:
             return False
 
         return True
+
+    # for maintenance only
+    def reset_tables(self):
+        try:
+            q = f'USE {MY_SQL_DATABASE}'
+            self._cursor.execute(q)
+
+            q = f'DROP TABLE {MY_SQL_YOUTUBER_TABLE_NAME}'
+            self._cursor.execute(q)
+
+            q = youtuber_create_table_query
+            self._cursor.execute(q)
+
+            q = f'DROP TABLE {MY_SQL_VIDEOS_TABLE_NAME}'
+            self._cursor.execute(q)
+
+            q = videos_create_table_query
+            self._cursor.execute(q)
+
+        except Exception:
+            pass
+
 
 
 if __name__ == '__main__':

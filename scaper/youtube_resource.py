@@ -149,18 +149,26 @@ class YoutubeResource:
         :return: List[Dict{comment_author, message}]: List of dictionary with key - 'comment_author' & 'message'
         """
         request = self.youtube.commentThreads().list(
-            part="snippet",
+            part="snippet,replies",
             videoId=video_id
         )
         response = request.execute()
+
         comments_list = []
+
         for item in response['items']:
-            msg = item['snippet']['topLevelComment']['snippet']['textDisplay']
-            comment_auther = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
-            comments_list.append({
-                'comment_author': comment_auther,
-                'message': msg
-            })
+            top_level_msg = item['snippet']['topLevelComment']['snippet']['textDisplay']
+            top_level_auther = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
+            top_level_date = item['snippet']['topLevelComment']['snippet']['publishedAt']
+            replies = []
+            if item['snippet']['totalReplyCount'] > 0:
+                for reply in item['replies']['comments']:
+                    msg = reply['snippet']['textDisplay']
+                    author = reply['snippet']['authorDisplayName']
+                    # reply_date = reply['snippet']['publishedAt']
+                    replies.append({'comment_auther': author, 'message': msg})
+            data = {'top_msg': top_level_msg, 'top_author': top_level_auther, 'replies': replies}  # 'data':top_level_date
+            comments_list.append(data)
         return comments_list
 
     def get_latest_published_video(self, channel_id: str) -> List[Dict]:
