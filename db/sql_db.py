@@ -12,10 +12,10 @@ class MySql:
         self._connection = connection.connect(host=MY_SQL_HOST, user=MY_SQL_USER, password=MY_SQL_PASSWORD)
         self._cursor = self._connection.cursor()
 
-    def _write_to_youtuber(self, c_id: str, name: str) -> Dict:
+    def _write_to_youtuber(self, c_id: str, c_uuid: str, name: str) -> Dict:
         query = f'INSERT INTO {MY_SQL_DATABASE}.{MY_SQL_YOUTUBER_TABLE_NAME} ' \
-                f'(`channel_id`, `channel_name`) ' \
-                f'VALUES ("{c_id}", "{name}")'
+                f'(`channel_id`, `channel_uuid`, `channel_name`) ' \
+                f'VALUES ("{c_id}", "{c_uuid}", "{name}")'
         try:
             self._cursor.execute(query)
             self._connection.commit()
@@ -32,11 +32,12 @@ class MySql:
         :return: Dict{status}: Dictionary with status flag
         """
         channel_id = video_obj.channel_id
+        channel_uuid = video_obj.channel_uuid
         channel_name = video_obj.channel_name
         if self._is_channel_exists(channel_id):
             return {'status': STATUS.FAIL}
 
-        status = self._write_to_youtuber(channel_id, channel_name)
+        status = self._write_to_youtuber(channel_id, channel_uuid, channel_name)
         return {'status': STATUS.SUCCESS} if status['status'] == STATUS.SUCCESS else {'status': STATUS.FAIL}
 
     def _is_channel_exists(self, channel_id: str) -> bool:

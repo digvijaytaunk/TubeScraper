@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 
 from scaper.youtube_resource import YoutubeResource
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 
 # TODO Add doc string
 

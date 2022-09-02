@@ -81,6 +81,7 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
+        channel_uuid = uuid4(),
         try:
             for video in videos:
                 video_id = video['contentDetails']['upload']['videoId']
@@ -90,6 +91,7 @@ class YoutubeResource:
                     video_id=video_id,
                     uuid=uuid4(),
                     channel_id=video['snippet']['channelId'],
+                    channel_uuid=channel_uuid[0],
                     channel_name=video['snippet']['channelTitle'],
                     published_at=datetime.fromisoformat(video['snippet']['publishedAt']),
                     title=video['snippet']['title'],
