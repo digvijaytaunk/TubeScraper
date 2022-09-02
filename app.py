@@ -14,12 +14,13 @@ def root():
 
     if request.method == 'POST':
         url = request.form.get('videosUrl')
+        count = int(request.form.get('videoCount'))
         if not validate_url(url):
             return render_template('index.html', data={'status': "URL not recognised. "
                                                                  "Please provide youtube video link only. "
                                                                  "Must contain 'youtube.com/watch' string"})
 
-        yt = YoutubeResource(url)
+        yt = YoutubeResource(url, count)
         result = yt.scrape()
 
         return render_template('result.html', data=result)

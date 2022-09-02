@@ -1,15 +1,41 @@
 import os
+from typing import List
+
 import pymongo
 
-mongo_user = os.getenv('MONGO_DB_CLOUD_USER')
-mongo_password = os.getenv('MONGO_DB_CLOUD_PASSWORD')
+from globs import MONGO_USER, MONGO_PASSWORD, MONGO_DB_NAME, MONGO_DB_COLLECTION_NAME
+from scaper.video import Video
 
-client = pymongo.MongoClient(
-    f"mongodb+srv://{mongo_user}:{mongo_password}@cluster0.malrj.mongodb.net/?retryWrites=true&w=majority"
-)
-db = client.test
-mongo_database = client['ml_db']
-collection = mongo_database['api_db']
+
+class MongoDb:
+    def __init__(self):
+        self._client = pymongo.MongoClient(
+            f"mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@cluster0.malrj.mongodb.net/?retryWrites=true&w=majority")
+
+        self._database_name = self._client[MONGO_DB_NAME]
+        self._collection = self._database_name[MONGO_DB_COLLECTION_NAME]
+
+    def save_comments(self, videos: List[Video]):
+        data_list = []
+        for video in videos:
+            data = {
+                'video_id': video.videoId,
+                'comments': video.comment_thread
+            }
+            data_list.append(data)
+
+        try:
+            self._collection.insert_many(data_list)
+        except Exception as e:
+            print(e)
+            return False
+
+        return True
+
+
+
+
+
 
 # DB schema for mongo
 record = {
@@ -22,7 +48,6 @@ record = {
 
     ]
 }
-
 
 # Dict for python to store extracted data
 data = {

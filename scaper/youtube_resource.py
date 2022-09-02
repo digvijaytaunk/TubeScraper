@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Dict, List
-from uuid import uuid4
 
 import googleapiclient.discovery
 
+from db.mongo import MongoDb
 from db.sql_db import MySql
 from globs import API_KEY
 from scaper.video import Video
@@ -11,8 +11,9 @@ from scaper.video import Video
 
 # TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url):
+    def __init__(self, url, scrape_count=50):
         self._input_url = url
+        self._scrape_count = scrape_count
         self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
         self.final_result = None
@@ -29,7 +30,11 @@ class YoutubeResource:
             api_service_name, api_version, developerKey=API_KEY)
         return yt
 
-    def _input_video_response(self):
+    def _input_video_response(self) -> Dict:
+        """
+        Fetch all the available data from Youtube API related to provided video
+        :return: Dict
+        """
         try:
             request = self.youtube.videos().list(part="snippet,contentDetails,statistics", id=self._input_video_id)
             res = request.execute()
@@ -38,10 +43,18 @@ class YoutubeResource:
             return {}
 
     def get_channel_id(self):
+        """
+        Get channel ID from input video
+        :return: str: channel id
+        """
         res = self._input_video_response()
         return res['items'][0]['snippet']['channelId']
 
     def get_channel_title(self):
+        """
+        Get channel title from input video
+        :return: str: channel title
+        """
         res = self._input_video_response()
         return res['items'][0]['snippet']['channelTitle']
 
@@ -61,6 +74,10 @@ class YoutubeResource:
         video_object_list = self._get_videos_info(channel_uid)
         sql_obj = MySql()
         youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
+        videos_save_status = sql_obj.save_videos(video_object_list)
+
+        mongo_obj = MongoDb()
+        save_comments_status = mongo_obj.save_comments(video_object_list)
 
         data = {
             'channel_title': channel_title,
@@ -68,6 +85,7 @@ class YoutubeResource:
             'videos': video_object_list,
             'vidCount': len(video_object_list),
             'youtuber_save_status': youtuber_save_status['status'],
+            'video_save_status': videos_save_status,
             'status': 'success'
         }
         self.final_result = data
@@ -81,7 +99,6 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
-        channel_uuid = uuid4(),
         try:
             for video in videos:
                 video_id = video['contentDetails']['upload']['videoId']
@@ -89,9 +106,7 @@ class YoutubeResource:
                 comments = self.get_comments(video_id)
                 v = Video(
                     video_id=video_id,
-                    uuid=uuid4(),
                     channel_id=video['snippet']['channelId'],
-                    channel_uuid=channel_uuid[0],
                     channel_name=video['snippet']['channelTitle'],
                     published_at=datetime.fromisoformat(video['snippet']['publishedAt']),
                     title=video['snippet']['title'],
@@ -156,7 +171,7 @@ class YoutubeResource:
         """
         all_videos_data = self.get_all_videos_from_response(channel_id)
         sorted_by_date = list(reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
-        return sorted_by_date[:50]
+        return sorted_by_date[:self._scrape_count]
 
     def get_all_videos_from_response(self, channel_id: str) -> List[Dict]:
         """

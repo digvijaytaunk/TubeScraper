@@ -4,15 +4,22 @@
 
 <div class="container-md text-white text-center">
 
-    <form class="form-inline" action="/" method="post">
-        <div class="form-group">
-            <label for="videosUrl" class="mb-3">Videos Url :</label>
-            <input type="text" class="form-control" id="videosUrl" name="videosUrl">
+    <form action="/" method="post">
+        <div class="row mb-3">
+            <label for="videosUrl" class="col-sm-3 col-form-label">Videos Url:</label>
+            <div class="col-sm-9">
+                <input type="text" class="form-control" id="videosUrl" name="videosUrl">
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg px-4 me-sm-3 fw-bold mt-5">Submit</button>
+        <div class="row mb-3">
+            <label for="videoCount" class="col-sm-3 col-form-label">No. of videos to scrape (default is 50):</label>
+            <div class="col-sm-9">
+                <input type="number" class="form-control" id="videoCount" name="videoCount">
+            </div>
+        </div>
 
+        <button type="submit" class="btn btn-primary btn-lg px-4 me-sm-3 fw-bold mt-3">Submit</button>
     </form>
-
 </div>
 
 {% endblock %}

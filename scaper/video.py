@@ -20,10 +20,8 @@
 #         first.download(output_path=output_path)
 
 class Video:
-    def __init__(self, video_id, uuid, channel_id='', channel_uuid='', channel_name='', published_at='', title='', thumbnail_url='', likes=0, views=0, comment_count=0, watch_url='', comment_thread=[]):
-        self.uuid = uuid
+    def __init__(self, video_id, channel_id='', channel_name='', published_at='', title='', thumbnail_url='', likes=0, views=0, comment_count=0, watch_url='', comment_thread=[]):
         self.channel_id = channel_id
-        self.channel_uuid = channel_uuid
         self.channel_name = channel_name
         self.publishedAt = published_at
         self.videoId = video_id

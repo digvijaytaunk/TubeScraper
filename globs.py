@@ -13,6 +13,11 @@ MY_SQL_YOUTUBER_TABLE_NAME = 'youtuber'
 MY_SQL_VIDEOS_TABLE_NAME = 'videos'
 
 
+MONGO_USER = os.getenv('MONGO_DB_CLOUD_USER')
+MONGO_PASSWORD = os.getenv('MONGO_DB_CLOUD_PASSWORD')
+MONGO_DB_NAME = 'tubescraper_db'
+MONGO_DB_COLLECTION_NAME = 'comments_collection'
+
 class STATUS(Enum):
     FAIL = 'fail'
     SUCCESS = 'success'
