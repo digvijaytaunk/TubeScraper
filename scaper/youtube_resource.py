@@ -1,7 +1,9 @@
+import base64
 from datetime import datetime
 from typing import Dict, List
 
 import googleapiclient.discovery
+import requests
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
@@ -104,13 +106,19 @@ class YoutubeResource:
                 video_id = video['contentDetails']['upload']['videoId']
                 stats = self.get_video_statistics(video_id)
                 comments = self.get_comments(video_id)
+
+                thumbnail_url = video['snippet']['thumbnails']['high']['url'],
+                res = requests.get(thumbnail_url[0])
+                base64_format = base64.b64encode(res.content).decode("utf-8")
+
                 v = Video(
                     video_id=video_id,
                     channel_id=video['snippet']['channelId'],
                     channel_name=video['snippet']['channelTitle'],
                     published_at=datetime.fromisoformat(video['snippet']['publishedAt']),
                     title=video['snippet']['title'],
-                    thumbnail_url=video['snippet']['thumbnails']['high']['url'],
+                    thumbnail_url=thumbnail_url[0],
+                    thumbnail_base64=base64_format,
                     likes=stats['likes'],
                     views=stats['views'],
                     comment_count=stats['comment_count'],

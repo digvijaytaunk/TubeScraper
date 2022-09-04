@@ -19,6 +19,7 @@
         <th>Views</th>
         <th>Comments</th>
         <th>Watch Url</th>
+        <th>Thumbnail Base64</th>
         <th>Thumbnail</th>
       </tr>
     </thead>
@@ -32,6 +33,7 @@
           <td class="align-middle">{{ video.views }}</td>
           <td class="align-middle">{{ video.comment_count }}</td>
           <td class="align-middle"><a href="{{ video.watch_url }}">{{ video.watch_url }}</a></td>
+          <td><img src="data:image/jpeg;base64,{{ video.thumbnail_base64 }}" alt="img_data" width="120" height="90"/></td>
           <td><img src="{{ video.thumbnail_url }}" alt="{{ video.thumbnail_url }}" width="120" height="90" /></td>
         </tr>
       {% endfor %}

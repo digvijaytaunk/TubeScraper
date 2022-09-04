@@ -16,8 +16,8 @@ def root():
 
     if request.method == 'POST':
         url = request.form.get('videosUrl')
-        count = int(request.form.get('videoCount').strip())
-        scrape_count = 50 if count < 1 or count > 50 or count == '' else count
+        count_str = request.form.get('videoCount').strip()
+        scrape_count = _validate_count(count_str)
 
         if not validate_url(url):
             return render_template('index.html', data={'status': "URL not recognised. "
@@ -30,6 +30,16 @@ def root():
         return render_template('result.html', data=result)
 
 
+# For maintenance only
+@app.route('/admin/db/reset', methods=['GET'])
+def clear_mongo_collection():
+    mongo_obj = MongoDb()
+    mongo_obj.reset_collection()
+    sql = MySql()
+    sql.reset_tables()
+    return render_template('index.html')
+
+
 def validate_url(url: str) -> bool:
     """
     Checks if passed url contains "watch" keyword.
@@ -40,14 +50,15 @@ def validate_url(url: str) -> bool:
     return True if string_to_find in url else False
 
 
-# For maintenance only
-@app.route('/admin/reset_databases', methods=['GET'])
-def clear_mongo_collection():
-    mongo_obj = MongoDb()
-    mongo_obj.reset_collection()
-    sql = MySql()
-    sql.reset_tables()
-    return render_template('index.html')
+def _validate_count(count_str: str) -> int:
+    if count_str == '':
+        return 50
+    try:
+        c = int(count_str)
+        count = c if 1 <= c <= 50 else 50
+        return count
+    except:
+        return 50
 
 
 if __name__ == '__main__':

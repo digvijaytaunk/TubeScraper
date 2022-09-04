@@ -18,6 +18,7 @@ class MongoDb:
         for video in videos:
             data = {
                 'video_id': video.videoId,
+                'thumbnail_base64': video.thumbnail_base64,
                 'comments': video.comment_thread
             }
             data_list.append(data)
