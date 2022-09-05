@@ -1,7 +1,10 @@
+import boto3
 from flask import Flask, render_template, request
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
+from globs import BUCKET_NAME, S3_ACCESS_KEY_ID, SECRET_ACCESS_KEY
+
 from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
@@ -17,14 +20,16 @@ def root():
     if request.method == 'POST':
         url = request.form.get('videosUrl')
         count_str = request.form.get('videoCount').strip()
+        download_path = request.form.get('downloadPath').strip()
+        upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
-
         if not validate_url(url):
             return render_template('index.html', data={'status': "URL not recognised. "
                                                                  "Please provide youtube video link only. "
                                                                  "Must contain 'youtube.com/watch' string"})
 
-        yt = YoutubeResource(url, scrape_count)
+        upload_to_s3 = True if upload else False
+        yt = YoutubeResource(url, upload_to_s3, scrape_count, download_path)
         result = yt.scrape()
 
         return render_template('result.html', data=result)
@@ -37,6 +42,12 @@ def clear_mongo_collection():
     mongo_obj.reset_collection()
     sql = MySql()
     sql.reset_tables()
+
+    # Delete all items from bucket
+    s3 = boto3.resource('s3', aws_access_key_id=S3_ACCESS_KEY_ID, aws_secret_access_key=SECRET_ACCESS_KEY)
+    bucket = s3.Bucket(BUCKET_NAME)
+    bucket.objects.all().delete()
+
     return render_template('index.html')
 
 

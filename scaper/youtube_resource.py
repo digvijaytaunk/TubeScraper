@@ -1,4 +1,7 @@
+import os
 import base64
+import boto3
+from botocore.exceptions import ClientError
 from datetime import datetime
 from typing import Dict, List
 
@@ -7,18 +10,22 @@ import requests
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
-from globs import API_KEY
+from globs import API_KEY, SECRET_ACCESS_KEY, S3_ACCESS_KEY_ID, BUCKET_NAME
 from scaper.video import Video
+from pytube import YouTube
 
 
 # TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url, scrape_count=50):
+    def __init__(self, url: str, extract_stream_info: bool, scrape_count: int = 50, download_path: str = ''):
         self._input_url = url
+        self.extract_stream_info = extract_stream_info
         self._scrape_count = scrape_count
         self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
         self.final_result = None
+        self._default_path = r'C:\Temp' if download_path == '' else download_path
+        self.download_path = self._get_download_path()
 
     def _build_youtube(self):
         """
@@ -31,6 +38,20 @@ class YoutubeResource:
         yt = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=API_KEY)
         return yt
+
+    def _get_download_path(self) -> str:
+        """
+        Create a folder in the local directory at the user provided location if does not exists
+        or use the default path C:\\Temp\\tubescraper' and return the download path.
+        :return:
+        """
+        directory = 'tubescraper'
+        parent_dir = self._default_path
+        download_path = os.path.join(parent_dir, directory)
+        if not os.path.exists(download_path):
+            os.mkdir(download_path)
+
+        return download_path
 
     def _input_video_response(self) -> Dict:
         """
@@ -81,6 +102,9 @@ class YoutubeResource:
         mongo_obj = MongoDb()
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
+        if self.extract_stream_info:
+            self._perform_download_and_upload(video_object_list)
+
         data = {
             'channel_title': channel_title,
             'channel_uid': channel_uid,
@@ -104,10 +128,13 @@ class YoutubeResource:
         try:
             for video in videos:
                 video_id = video['contentDetails']['upload']['videoId']
+                title = video['snippet']['title']
+                thumbnail_url = video['snippet']['thumbnails']['high']['url'],
+                watch_url = f'https://www.youtube.com/watch?v={video_id}'
+
                 stats = self.get_video_statistics(video_id)
                 comments = self.get_comments(video_id)
 
-                thumbnail_url = video['snippet']['thumbnails']['high']['url'],
                 res = requests.get(thumbnail_url[0])
                 base64_format = base64.b64encode(res.content).decode("utf-8")
 
@@ -116,13 +143,13 @@ class YoutubeResource:
                     channel_id=video['snippet']['channelId'],
                     channel_name=video['snippet']['channelTitle'],
                     published_at=datetime.fromisoformat(video['snippet']['publishedAt']),
-                    title=video['snippet']['title'],
+                    title=title,
                     thumbnail_url=thumbnail_url[0],
                     thumbnail_base64=base64_format,
                     likes=stats['likes'],
                     views=stats['views'],
                     comment_count=stats['comment_count'],
-                    watch_url=f'https://www.youtube.com/watch?v={video_id}',
+                    watch_url=watch_url,
                     comment_thread=comments
                 )
                 result.append(v)
@@ -231,6 +258,35 @@ class YoutubeResource:
             print(e)
             return {}
 
+    def _perform_download_and_upload(self, videos: List[Video]):
+        for video in videos:
+            self._download(video.watch_url)
+
+        self._upload_to_s3()
+
+    def _download(self, url: str):
+        pyt = YouTube(url)
+        try:
+            streams = pyt.streams
+            stream = streams.get_lowest_resolution()
+            stream.download(output_path=self.download_path)
+        except Exception as e:
+            print(e)
+
+    def _upload_to_s3(self):
+        client = boto3.client('s3', aws_access_key_id=S3_ACCESS_KEY_ID, aws_secret_access_key=SECRET_ACCESS_KEY)
+
+        for filename in os.listdir(self.download_path):
+            f = os.path.join(self.download_path, filename)
+            if os.path.isfile(f):
+                print(f)
+                try:
+                    client.upload_file(f, BUCKET_NAME, filename)
+                except ClientError as e:
+                    print(f'invalid credentials {e}')
+                except Exception as e:
+                    print(f'{e}')
+
     def _extract_video_id(self) -> str:
         """
         Function to extract value of 'v' parameter from url provided in html form
@@ -249,17 +305,21 @@ class YoutubeResource:
 
 
 if __name__ == "__main__":
-    url = 'https://www.youtube.com/watch?v=3NfjY7ddHz8'
+    url = 'https://www.youtube.com/watch?v=QXeEoD0pB3E'
     vid = '3NfjY7ddHz8'
-    yt = YoutubeResource(url)
-    res = yt._input_video_response()
+    yt = YoutubeResource(url, True, download_path=r'C:\Data_TempFilesOnly')
+    # res = yt._input_video_response()
+    #
+    # t = yt.get_channel_title()
+    # id = yt.get_channel_id()
+    # print(t, id)
+    #
+    # details = yt.get_channel_detail_from_input_url('N182e5GNyH4')
+    # print(details)
+    #
+    # d = yt.get_video_statistics(vid)
+    # print(d)
 
-    t = yt.get_channel_title()
-    id = yt.get_channel_id()
-    print(t, id)
+    # yt._download(url)
 
-    details = yt.get_channel_detail_from_input_url('N182e5GNyH4')
-    print(details)
-
-    d = yt.get_video_statistics(vid)
-    print(d)
+    yt._upload_to_s3()
