@@ -17,15 +17,14 @@ from pytube import YouTube
 
 # TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url: str, extract_stream_info: bool, scrape_count: int = 50, download_path: str = ''):
+    def __init__(self, url: str, extract_stream_info: bool, scrape_count: int = 50):
         self._input_url = url
         self.extract_stream_info = extract_stream_info
         self._scrape_count = scrape_count
         self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
         self.final_result = None
-        self._default_path = r'C:\Temp' if download_path == '' else download_path
-        self.download_path = self._get_download_path()
+        self.download_path = '~/Downloads'
 
     def _build_youtube(self):
         """
@@ -38,20 +37,6 @@ class YoutubeResource:
         yt = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=API_KEY)
         return yt
-
-    def _get_download_path(self) -> str:
-        """
-        Create a folder in the local directory at the user provided location if does not exists
-        or use the default path C:\\Temp\\tubescraper' and return the download path.
-        :return:
-        """
-        directory = 'tubescraper'
-        parent_dir = self._default_path
-        download_path = os.path.join(parent_dir, directory)
-        if not os.path.exists(download_path):
-            os.mkdir(download_path)
-
-        return download_path
 
     def _input_video_response(self) -> Dict:
         """

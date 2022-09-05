@@ -9,18 +9,19 @@ from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
 
-# TODO Add doc string
-
 
 @app.route('/', methods=['GET', 'POST'])
 def root():
+    """
+    Root end point for user input form
+    :return:
+    """
     if request.method == 'GET':
         return render_template('index.html')
 
     if request.method == 'POST':
         url = request.form.get('videosUrl')
         count_str = request.form.get('videoCount').strip()
-        download_path = request.form.get('downloadPath').strip()
         upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
         if not validate_url(url):
@@ -29,7 +30,7 @@ def root():
                                                                  "Must contain 'youtube.com/watch' string"})
 
         upload_to_s3 = True if upload else False
-        yt = YoutubeResource(url, upload_to_s3, scrape_count, download_path)
+        yt = YoutubeResource(url, upload_to_s3, scrape_count)
         result = yt.scrape()
 
         return render_template('result.html', data=result)
@@ -38,6 +39,11 @@ def root():
 # For maintenance only
 @app.route('/admin/db/reset', methods=['GET'])
 def clear_mongo_collection():
+    """
+    For the developer to clean AWS SQL & S3 resources & MongoDB. Deletes all SQL table & mongoDB and recreate it.
+    Also Deletes all files stored in S3 bucket.
+    :return:
+    """
     mongo_obj = MongoDb()
     mongo_obj.reset_collection()
     sql = MySql()
@@ -53,7 +59,7 @@ def clear_mongo_collection():
 
 def validate_url(url: str) -> bool:
     """
-    Checks if passed url contains "watch" keyword.
+    Checks if passed url contains "youtube.com/watch" keyword.
     :param url: str
     :return: Bool
     """
@@ -62,6 +68,11 @@ def validate_url(url: str) -> bool:
 
 
 def _validate_count(count_str: str) -> int:
+    """
+    Returns validate user input
+    :param count_str:
+    :return: int: no. of videos to fetch
+    """
     if count_str == '':
         return 50
     try:
