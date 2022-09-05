@@ -25,6 +25,7 @@ class YoutubeResource:
         self.youtube = self._build_youtube()
         self.final_result = None
         self.download_path = '~/Downloads'
+        self.s3_urls = []
 
     def _build_youtube(self):
         """
@@ -82,13 +83,15 @@ class YoutubeResource:
         video_object_list = self._get_videos_info(channel_uid)
         sql_obj = MySql()
         youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
-        videos_save_status = sql_obj.save_videos(video_object_list)
+        videos_save_status = sql_obj.save_videos(video_object_list)  # TODO SQL syntex error
 
         mongo_obj = MongoDb()
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
             self._perform_download_and_upload(video_object_list)
+
+        self._map_s3_url(video_object_list)
 
         data = {
             'channel_title': channel_title,
@@ -260,6 +263,7 @@ class YoutubeResource:
 
     def _upload_to_s3(self):
         client = boto3.client('s3', aws_access_key_id=S3_ACCESS_KEY_ID, aws_secret_access_key=SECRET_ACCESS_KEY)
+        bucket_location = client.get_bucket_location(Bucket=BUCKET_NAME)
 
         for filename in os.listdir(self.download_path):
             f = os.path.join(self.download_path, filename)
@@ -267,6 +271,9 @@ class YoutubeResource:
                 print(f)
                 try:
                     client.upload_file(f, BUCKET_NAME, filename)
+                    object_url = f'https://s3-{bucket_location["LocationConstraint"]}.amazonaws.com/{BUCKET_NAME}/{filename}'
+                    self.s3_urls.append(object_url)
+
                 except ClientError as e:
                     print(f'invalid credentials {e}')
                 except Exception as e:
@@ -287,6 +294,16 @@ class YoutubeResource:
                 dic[args_n_vals[0]] = args_n_vals[1]
 
             return dic.get('v')
+
+    def _map_s3_url(self, videos: List[Video]) -> List[Video]:
+        for url in self.s3_urls:
+            file_name = url.split('/')[-1]
+            file_name_without_ext = file_name.split('.')[0]
+            obj = [video for video in videos if video.title == file_name_without_ext]  # TODO make it pythonic
+            if len(obj) == 1:
+                obj[0].s3_url = url
+
+        return videos
 
 
 if __name__ == "__main__":
