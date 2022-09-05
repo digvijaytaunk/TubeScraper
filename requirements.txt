@@ -8,3 +8,4 @@ mysql-connector-python==8.0.30
 google-api-python-client==2.58.0
 gunicorn==20.0.4
 pymongo[srv]
+boto3==1.24.66
