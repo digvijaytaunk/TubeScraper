@@ -256,7 +256,13 @@ class YoutubeResource:
         pyt = YouTube(url)
         try:
             streams = pyt.streams
-            stream = streams.get_lowest_resolution()
+            stream = streams.get_by_resolution('144p')  # Video resolution i.e. "720p", "480p", "360p", "240p", "144p"
+            if stream is None:
+                stream = streams.get_by_resolution('240p')
+            if stream is None:
+                stream = streams.get_by_resolution('360p')
+            if stream is None:
+                stream = streams.get_by_resolution('480p')
             stream.download(output_path=self.download_path)
         except Exception as e:
             print(e)
