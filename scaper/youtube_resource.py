@@ -89,7 +89,8 @@ class YoutubeResource:
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
-            self._perform_download_and_upload(video_object_list)
+            # self._perform_download_and_upload(video_object_list)
+            self._upload_to_s3()
 
         self._map_s3_url(video_object_list)
 
@@ -113,6 +114,12 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
+
+        # if self.extract_stream_info:
+        #     # Delete all existing files
+        #     for f in os.listdir(self.download_path):
+        #         os.remove(os.path.join(self.download_path, f))
+
         try:
             for video in videos:
                 video_id = video['contentDetails']['upload']['videoId']
@@ -125,6 +132,9 @@ class YoutubeResource:
 
                 res = requests.get(thumbnail_url[0])
                 base64_format = base64.b64encode(res.content).decode("utf-8")
+
+                if self.extract_stream_info:
+                    self._download(watch_url, video_id)
 
                 v = Video(
                     video_id=video_id,
@@ -246,24 +256,31 @@ class YoutubeResource:
             print(e)
             return {}
 
-    def _perform_download_and_upload(self, videos: List[Video]):
-        for video in videos:
-            self._download(video.watch_url)
+    # def _perform_download_and_upload(self, videos: List[Video]):
+    #     for video in videos:
+    #         self._download(video.watch_url)
+    #
+    #     self._upload_to_s3()
 
-        self._upload_to_s3()
-
-    def _download(self, url: str):
+    def _download(self, url: str, file_name: str):
         pyt = YouTube(url)
         try:
             streams = pyt.streams
-            stream = streams.get_by_resolution('144p')  # Video resolution i.e. "720p", "480p", "360p", "240p", "144p"
+
+            # stream = streams.get_by_resolution('144p')  # Video resolution i.e. "720p", "480p", "360p", "240p", "144p"
+            strms = streams.filter(progressive=False)  # Video resolution i.e. "720p", "480p", "360p", "240p", "144p"
+            stream = strms[0]
+            ext = '.3gpp'
             if stream is None:
                 stream = streams.get_by_resolution('240p')
+                ext = 'mp4'
             if stream is None:
                 stream = streams.get_by_resolution('360p')
+                ext = 'mp4'
             if stream is None:
                 stream = streams.get_by_resolution('480p')
-            stream.download(output_path=self.download_path)
+                ext = 'mp4'
+            stream.download(output_path=self.download_path, filename=f'{file_name}{ext}')
         except Exception as e:
             print(e)
 
@@ -274,7 +291,6 @@ class YoutubeResource:
         for filename in os.listdir(self.download_path):
             f = os.path.join(self.download_path, filename)
             if os.path.isfile(f):
-                print(f)
                 try:
                     client.upload_file(f, BUCKET_NAME, filename)
                     object_url = f'https://s3-{bucket_location["LocationConstraint"]}.amazonaws.com/{BUCKET_NAME}/{filename}'
@@ -305,7 +321,7 @@ class YoutubeResource:
         for url in self.s3_urls:
             file_name = url.split('/')[-1]
             file_name_without_ext = file_name.split('.')[0]
-            obj = [video for video in videos if video.title == file_name_without_ext]  # TODO make it pythonic
+            obj = [video for video in videos if video.videoId == file_name_without_ext]
             if len(obj) == 1:
                 obj[0].s3_url = url
 
