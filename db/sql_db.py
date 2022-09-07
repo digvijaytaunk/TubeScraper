@@ -10,9 +10,10 @@ from scaper.video import Video
 
 class MySql:
 
-    def __init__(self):
+    def __init__(self, logger):
         self._connection = connection.connect(host=MY_SQL_HOST, user=MY_SQL_USER, password=MY_SQL_PASSWORD)
         self._cursor = self._connection.cursor()
+        self.LOGGER = logger
 
     def save_videos(self, all_videos: List[Video]) -> bool:
         """
@@ -29,6 +30,7 @@ class MySql:
         new_videos = [video for video in all_videos if video.videoId in new_ids]
 
         try:
+            self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql save_videos.')
             self._write_to_videos(new_videos)
         except Exception as e:
             print(e)
@@ -49,6 +51,7 @@ class MySql:
         for item in res:
             saved_id.append(item[0])
 
+        self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql _get_saved_video_id.')
         return saved_id
 
     def save_youtuber_data(self, video_obj: Video) -> Dict:
@@ -62,6 +65,7 @@ class MySql:
         if self._is_channel_exists(channel_id):
             return {'status': STATUS.FAIL}
 
+        self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql save_youtuber_data.')
         status = self._write_to_youtuber(channel_id, channel_name)
         return {'status': STATUS.SUCCESS} if status['status'] == STATUS.SUCCESS else {'status': STATUS.FAIL}
 

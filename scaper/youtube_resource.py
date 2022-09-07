@@ -17,15 +17,17 @@ from pytube import YouTube
 
 # TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url: str, extract_stream_info: bool, scrape_count: int = 50):
+    def __init__(self, url: str, extract_stream_info: bool, logger,  scrape_count: int = 50):
         self._input_url = url
         self.extract_stream_info = extract_stream_info
         self._scrape_count = scrape_count
+        self.logger = logger
         self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
         self.final_result = None
         self.download_path = '~/Downloads'
         self.s3_urls = []
+
 
     def _build_youtube(self):
         """
@@ -37,6 +39,8 @@ class YoutubeResource:
         api_version = "v3"
         yt = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=API_KEY)
+
+        self.logger.critical('This is a CRITICAL log record.')
         return yt
 
     def _input_video_response(self) -> Dict:
@@ -57,6 +61,13 @@ class YoutubeResource:
         :return: str: channel id
         """
         res = self._input_video_response()
+
+        self.logger.debug('This is a DEBUG log record FROM YOUTUBE RESOURCE get_channel_id.')
+        self.logger.info('This is an INFO log record FROM YOUTUBE RESOURCE get_channel_id.')
+        self.logger.warning('This is a WARNING log record FROM YOUTUBE RESOURCE get_channel_id.')
+        self.logger.error('This is an ERROR log record FROM YOUTUBE RESOURCE get_channel_id.')
+        self.logger.critical('This is a CRITICAL log record FROM YOUTUBE RESOURCE get_channel_id.')
+
         return res['items'][0]['snippet']['channelId']
 
     def get_channel_title(self):
@@ -81,15 +92,14 @@ class YoutubeResource:
         channel_uid = self.get_channel_id()
 
         video_object_list = self._get_videos_info(channel_uid)
-        sql_obj = MySql()
+        sql_obj = MySql(self.logger)
         youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
-        videos_save_status = sql_obj.save_videos(video_object_list)  # TODO SQL syntex error
+        videos_save_status = sql_obj.save_videos(video_object_list)
 
-        mongo_obj = MongoDb()
+        mongo_obj = MongoDb(self.logger)
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
-            # self._perform_download_and_upload(video_object_list)
             self._upload_to_s3()
 
         self._map_s3_url(video_object_list)
@@ -114,11 +124,6 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
-
-        # if self.extract_stream_info:
-        #     # Delete all existing files
-        #     for f in os.listdir(self.download_path):
-        #         os.remove(os.path.join(self.download_path, f))
 
         try:
             for video in videos:
@@ -331,7 +336,7 @@ class YoutubeResource:
 if __name__ == "__main__":
     url = 'https://www.youtube.com/watch?v=QXeEoD0pB3E'
     vid = '3NfjY7ddHz8'
-    yt = YoutubeResource(url, True, download_path=r'C:\Data_TempFilesOnly')
+    yt = YoutubeResource(url, True)
     # res = yt._input_video_response()
     #
     # t = yt.get_channel_title()

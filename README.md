@@ -70,7 +70,9 @@ Set the value of following environment variable for local as well as deployment 
     python app.py
 
 # Deploy
-make below link hyperlink
+
+Deployment is done at 3 platforms - 
+
 ## Heroku
 
     https://tubescraper.herokuapp.com/
@@ -91,12 +93,18 @@ extracted
 ![img.png](img.png)
 
 1. **Video Url**: Url of the video of a channel for which the data needs to be fetched. It supports the different url 
-   patters like below mention. It should be a youtube.com domain & must be a 'watch' endpoint with parameter 'v'. 
+   patters like below mention. It should be a youtube.com domain & must be a '/watch' endpoint with parameter 'v'. 
        
        
-       `https://www.youtube.com/watch?v=QXeEoD0pB3E`
-       
-       `https://www.youtube.com/watch?v=FHfZ5X7qn1I&list=PLsyeobzWxl7pGh8x5C2hsu3My4ei-eX1Y`
+      https://www.youtube.com/watch?v=QXeEoD0pB3E
+
+      https://www.youtube.com/watch?v=FHfZ5X7qn1I&list=PLsyeobzWxl7pGh8x5C2hsu3My4ei-eX1Y
+
+      https://www.youtube.com/watch?v=2fXQvy0kFak&ab_channel=HiteshChoudhary
+
+      https://www.youtube.com/watch?v=EMEvheCVhMk&list=PL7ersPsTyYt2Q-SqZxTA1D-melSfqBRMW&ab_channel=MySirG.com
+
+
        
 2. **No. of videos to scrape**: Max limit is set to be equal to or less than 50 videos. However there is a maximum limit to fetch 
 the data from Youtube API is 256.

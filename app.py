@@ -1,3 +1,5 @@
+import logging
+
 import boto3
 from flask import Flask, render_template, request
 
@@ -9,6 +11,15 @@ from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
 
+# gunicorn_logger = logging.getLogger('gunicorn.error')
+# app.logger.handlers = gunicorn_logger.handlers
+# app.logger.setLevel(gunicorn_logger.level)
+
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def root():
@@ -17,10 +28,18 @@ def root():
     :return:
     """
     if request.method == 'GET':
+
+        app.logger.debug('This is a DEBUG log record.')
+        app.logger.info('This is an INFO log record.')
+        app.logger.warning('This is a WARNING log record.')
+        app.logger.error('This is an ERROR log record.')
+        app.logger.critical('This is a CRITICAL log record.')
+
         return render_template('index.html')
 
     if request.method == 'POST':
         url = request.form.get('videosUrl')
+
         count_str = request.form.get('videoCount').strip()
         upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
@@ -30,7 +49,7 @@ def root():
                                                                  "Must contain 'youtube.com/watch' string"})
 
         upload_to_s3 = True if upload else False
-        yt = YoutubeResource(url, upload_to_s3, scrape_count)
+        yt = YoutubeResource(url, upload_to_s3, app.logger, scrape_count)
         result = yt.scrape()
 
         return render_template('result.html', data=result)
@@ -44,9 +63,9 @@ def clear_mongo_collection():
     Also Deletes all files stored in S3 bucket.
     :return:
     """
-    mongo_obj = MongoDb()
+    mongo_obj = MongoDb(app.logger)
     mongo_obj.reset_collection()
-    sql = MySql()
+    sql = MySql(app.logger)
     sql.reset_tables()
 
     # Delete all items from bucket

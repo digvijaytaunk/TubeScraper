@@ -7,9 +7,9 @@ from scaper.video import Video
 
 
 class MongoDb:
-    def __init__(self):
+    def __init__(self, logger):
         self._client = pymongo.MongoClient(MONGO_CONNECTION_STRING)
-
+        self.LOGGER = logger
         self._database_name = self._client[MONGO_DB_NAME]
         self._collection = self._database_name[MONGO_DB_COLLECTION_NAME]
 
@@ -24,6 +24,7 @@ class MongoDb:
             data_list.append(data)
 
         try:
+            self.LOGGER.debug('This is a DEBUG log record FROM MONGO MONGO MONGO MONGO MONGODB.')
             self._collection.insert_many(data_list)
         except Exception as e:
             print(e)
