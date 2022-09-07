@@ -89,7 +89,6 @@ class YoutubeResource:
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
-            # self._perform_download_and_upload(video_object_list)
             self._upload_to_s3()
 
         self._map_s3_url(video_object_list)
@@ -114,11 +113,6 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
-
-        # if self.extract_stream_info:
-        #     # Delete all existing files
-        #     for f in os.listdir(self.download_path):
-        #         os.remove(os.path.join(self.download_path, f))
 
         try:
             for video in videos:
@@ -256,12 +250,6 @@ class YoutubeResource:
             print(e)
             return {}
 
-    # def _perform_download_and_upload(self, videos: List[Video]):
-    #     for video in videos:
-    #         self._download(video.watch_url)
-    #
-    #     self._upload_to_s3()
-
     def _download(self, url: str, file_name: str):
         pyt = YouTube(url)
         try:
@@ -331,7 +319,7 @@ class YoutubeResource:
 if __name__ == "__main__":
     url = 'https://www.youtube.com/watch?v=QXeEoD0pB3E'
     vid = '3NfjY7ddHz8'
-    yt = YoutubeResource(url, True, download_path=r'C:\Data_TempFilesOnly')
+    yt = YoutubeResource(url, True)
     # res = yt._input_video_response()
     #
     # t = yt.get_channel_title()

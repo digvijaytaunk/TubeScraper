@@ -7,6 +7,7 @@ This document explains how to set up a development environment, architecture of 
 The below diagram show the overview of how the different systems are connected.
 ![Architecture Diagram](ts.png)
 
+
 ## Getting started with development
 
 - Clone this repo
@@ -16,6 +17,15 @@ The below diagram show the overview of how the different systems are connected.
 
     pip install -r requirements.txt
 
+### Google Cloud Platform 
+
+Make a new project in GCP and enable youtube API. Visit the Enabled APIs page. 
+In the list of APIs, make sure the status is ON for the YouTube Data API v3.
+The Authentication is done using API Keys.
+
+Visit [https://developers.google.com/youtube/v3](https://developers.google.com/youtube/v3) for more info.
+
+Docs available at [https://developers.google.com/youtube/v3/docs](https://developers.google.com/youtube/v3/docs)
 ### Environment variables
 
 Set the value of following environment variable for local as well as deployment environment
@@ -51,6 +61,28 @@ Set the value of following environment variable for local as well as deployment 
    | chanel_id   | video_id | title | youtube_link | s3_link | likes | video_id |comments_count | views | thumbnail_url |
    | ----------- | -------- | ----- | ------------ | ------- | ----- | -------- | ------------- | ----- | ------------- |
 
+#### Create Table Query
+
+      videos_create_table_query = f'CREATE TABLE `{MY_SQL_DATABASE}`.`{MY_SQL_VIDEOS_TABLE_NAME}` (
+                                  `index` INT NOT NULL AUTO_INCREMENT,
+                                  `channel_id` VARCHAR(45) NOT NULL,
+                                  `video_id` VARCHAR(45) NOT NULL,
+                                  `title` VARCHAR(45) NOT NULL,
+                                  `youtube_link` VARCHAR(45) NOT NULL,
+                                  `s3_link` VARCHAR(45) NULL,
+                                  `likes` INT NULL,
+                                  `comments_count` INT NULL,
+                                  `views` INT NULL,
+                                  `thumbnail_link` VARCHAR(45) NULL,
+                                  PRIMARY KEY (`index`),
+                                  UNIQUE INDEX `video_id_UNIQUE` (`video_id` ASC) VISIBLE);'
+      
+      
+      youtuber_create_table_query = f'CREATE TABLE `{MY_SQL_DATABASE}`.`{MY_SQL_YOUTUBER_TABLE_NAME}` (
+                                    `channel_id` VARCHAR(45) NOT NULL,
+                                    `channel_name` VARCHAR(45) NOT NULL,
+                                    PRIMARY KEY (`channel_id`),
+                                    UNIQUE INDEX `channel_id_UNIQUE` (`channel_id` ASC) VISIBLE)'
 ### MongoDB
    
       record = {
@@ -72,16 +104,23 @@ Set the value of following environment variable for local as well as deployment 
 # Deploy
 make below link hyperlink
 ## Heroku
-
-    https://tubescraper.herokuapp.com/
+   
+[https://tubescraper.herokuapp.com/](https://tubescraper.herokuapp.com/)
+    
 
 ## AWS
-
-    http://tubescraper-env.eba-2sxmj2u9.ap-south-1.elasticbeanstalk.com/
+[http://tubescraper-env.eba-kcbwec25.ap-south-1.elasticbeanstalk.com/](http://tubescraper-env.eba-kcbwec25.ap-south-1.elasticbeanstalk.com/)
+    
 
 ## Azure
+[https://tubescraperwebapp.azurewebsites.net/](https://tubescraperwebapp.azurewebsites.net/)
+    
+## Reset Database Endpoint
+As this is a hobby project, deployment is done on free tier of cloud platform. To keep the resources under limit,
+this endpoint deletes all data from all the databases as well as video files from S3 bucket.
 
-    https://tubescraperwebapp.azurewebsites.net/
+      method = GET /admin/db/reset
+
 
 # Use Tubescraper
 
@@ -90,13 +129,17 @@ extracted
 
 ![img.png](img.png)
 
+
 1. **Video Url**: Url of the video of a channel for which the data needs to be fetched. It supports the different url 
    patters like below mention. It should be a youtube.com domain & must be a 'watch' endpoint with parameter 'v'. 
        
        
-       `https://www.youtube.com/watch?v=QXeEoD0pB3E`
-       
-       `https://www.youtube.com/watch?v=FHfZ5X7qn1I&list=PLsyeobzWxl7pGh8x5C2hsu3My4ei-eX1Y`
+      https://www.youtube.com/watch?v=QXeEoD0pB3E
+      https://www.youtube.com/watch?v=FHfZ5X7qn1I&list=PLsyeobzWxl7pGh8x5C2hsu3My4ei-eX1Y
+      https://www.youtube.com/watch?v=2fXQvy0kFak&ab_channel=HiteshChoudhary
+      https://www.youtube.com/watch?v=EMEvheCVhMk&list=PL7ersPsTyYt2Q-SqZxTA1D-melSfqBRMW&ab_channel=MySirG.com
+
+
        
 2. **No. of videos to scrape**: Max limit is set to be equal to or less than 50 videos. However there is a maximum limit to fetch 
 the data from Youtube API is 256.
@@ -111,3 +154,7 @@ the data from Youtube API is 256.
 ## Output 
 
 ![img_1.png](img_1.png)
+![img_2.png](img_2.png)
+![img_3.png](img_3.png)
+![img_4.png](img_4.png)
+![img_5.png](img_5.png)
