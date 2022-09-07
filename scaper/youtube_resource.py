@@ -261,12 +261,6 @@ class YoutubeResource:
             print(e)
             return {}
 
-    # def _perform_download_and_upload(self, videos: List[Video]):
-    #     for video in videos:
-    #         self._download(video.watch_url)
-    #
-    #     self._upload_to_s3()
-
     def _download(self, url: str, file_name: str):
         pyt = YouTube(url)
         try:
