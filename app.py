@@ -11,9 +11,6 @@ from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
 
-# gunicorn_logger = logging.getLogger('gunicorn.error')
-# app.logger.handlers = gunicorn_logger.handlers
-# app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
@@ -28,30 +25,25 @@ def root():
     :return:
     """
     if request.method == 'GET':
-
-        app.logger.debug('This is a DEBUG log record.')
-        app.logger.info('This is an INFO log record.')
-        app.logger.warning('This is a WARNING log record.')
-        app.logger.error('This is an ERROR log record.')
-        app.logger.critical('This is a CRITICAL log record.')
-
         return render_template('index.html')
 
     if request.method == 'POST':
         url = request.form.get('videosUrl')
-
         count_str = request.form.get('videoCount').strip()
         upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
+        app.logger.info(f'POST - Fetch request for {url}, {scrape_count} videos, Upload status - {upload}')
         if not validate_url(url):
+            app.logger.warning(f'POST - Fetch request for {url}, Invalid url {url}')
             return render_template('index.html', data={'status': "URL not recognised. "
                                                                  "Please provide youtube video link only. "
                                                                  "Must contain 'youtube.com/watch' string"})
 
         upload_to_s3 = True if upload else False
+        app.logger.info(f'Started scraping process...')
         yt = YoutubeResource(url, upload_to_s3, app.logger, scrape_count)
         result = yt.scrape()
-
+        app.logger.info(f'Scraping process completed.')
         return render_template('result.html', data=result)
 
 

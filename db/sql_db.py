@@ -21,6 +21,7 @@ class MySql:
         :param all_videos: LIst[Video]: List if Video object
         :return: Dict{videoId: status}: Video Id as a key, status of video = saved or exist
         """
+        self.LOGGER.info(f'Initiated Saving videos to MySQL.')
         channel_id = all_videos[0].channel_id
 
         saved_video_list = self._get_saved_video_id(channel_id)
@@ -30,12 +31,14 @@ class MySql:
         new_videos = [video for video in all_videos if video.videoId in new_ids]
 
         try:
-            self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql save_videos.')
-            self._write_to_videos(new_videos)
+            if len(new_videos) > 0:
+                self._write_to_videos(new_videos)
+            self.LOGGER.warning('All the latest videos already saved in database.')
         except Exception as e:
-            print(e)
+            self.LOGGER.error(f'Failed to write to SQl DB. {e}')
             return False
 
+        self.LOGGER.info('Writing to SQl DB success.')
         return True
 
     def _get_saved_video_id(self, channel_id: str) -> List[str]:
@@ -45,13 +48,14 @@ class MySql:
         :return: List[str]: List of youtube video id
         """
         query = f'SELECT `video_id` FROM {MY_SQL_DATABASE}.{MY_SQL_VIDEOS_TABLE_NAME} WHERE `channel_id`="{channel_id}"'
+        self.LOGGER.info(f'Fetching saved video with SQl query {query}.')
         self._cursor.execute(query)
         res = self._cursor.fetchall()
         saved_id = []
         for item in res:
             saved_id.append(item[0])
 
-        self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql _get_saved_video_id.')
+        self.LOGGER.debug(f'Found saved video from SQL DB {saved_id}.')
         return saved_id
 
     def save_youtuber_data(self, video_obj: Video) -> Dict:
@@ -60,13 +64,17 @@ class MySql:
         :param video_obj: Video: Video object with channel_id populated
         :return: Dict{status}: Dictionary with status flag
         """
+
         channel_id = video_obj.channel_id
         channel_name = video_obj.channel_name
+        self.LOGGER.info(f'Saving youtuber data to SQl DB - {channel_name}.')
         if self._is_channel_exists(channel_id):
+            self.LOGGER.warning(f'Youtuber data exists in SQl DB for ID {channel_name}.')
             return {'status': STATUS.FAIL}
 
-        self.LOGGER.debug('This is a DEBUG log record FROM MySql MySql MySql MySql MySql save_youtuber_data.')
         status = self._write_to_youtuber(channel_id, channel_name)
+
+        self.LOGGER.info(f'Youtuber data saved to SQL DB STATUS {status["status"]}.')
         return {'status': STATUS.SUCCESS} if status['status'] == STATUS.SUCCESS else {'status': STATUS.FAIL}
 
     def _is_channel_exists(self, channel_id: str) -> bool:
@@ -82,8 +90,10 @@ class MySql:
 
     def read_youtuber_table(self):
         query = f'SELECT * FROM {MY_SQL_DATABASE}.{MY_SQL_YOUTUBER_TABLE_NAME}'
+        self.LOGGER.info(f'Reading youtuber data from SQl DB query - {query}.')
         self._cursor.execute(query)
         all_records = self._cursor.fetchall()
+        self.LOGGER.info(f'Found youtuber data from SQl DB - {all_records}.')
         return all_records
 
     def _write_to_youtuber(self, c_id: str, name: str) -> Dict:
@@ -91,15 +101,17 @@ class MySql:
                 f'(`channel_id`, `channel_name`) ' \
                 f'VALUES ("{c_id}", "{name}")'
         try:
+            self.LOGGER.info(f'Writing youtuber data to SQl DB query - {query}.')
             self._cursor.execute(query)
             self._connection.commit()
         except Exception as e:
-            print(e)
+            self.LOGGER.eror(f'Failed to write youtuber data from SQl DB query - {query}. {e}')
             return {'status': STATUS.FAIL}
 
         return {'status': STATUS.SUCCESS}
 
     def _write_to_videos(self, video_list: List[Video]) -> bool:
+        self.LOGGER.info(f'Initialised writing video data to SQl DB.')
         value_params = []
         for video in video_list:
             value_params.append(f'("{video.channel_id}", "{video.videoId}", "{video.title}", "{video.watch_url}", "s3_link", "{video.likes}", "{video.comment_count}", "{video.views}","{video.thumbnail_url}")')
@@ -109,10 +121,11 @@ class MySql:
                 f'(`channel_id`,`video_id`, `title`, `youtube_link`, `s3_link`, `likes`, `comments_count`, `views`, `thumbnail_link`) ' \
                 f'VALUES {values}'
         try:
+            self.LOGGER.info(f'Writing video data to SQl DB query - {query}.')
             self._cursor.execute(query)
             self._connection.commit()
         except Exception as e:
-            print(e)
+            self.LOGGER.error(f'Failed to write video data to SQl DB - {e}.')
             return False
 
         return True
@@ -126,18 +139,15 @@ class MySql:
             q = f'DROP TABLE {MY_SQL_YOUTUBER_TABLE_NAME}'
             self._cursor.execute(q)
 
-            q = youtuber_create_table_query
-            self._cursor.execute(q)
+            self._cursor.execute(youtuber_create_table_query)
 
             q = f'DROP TABLE {MY_SQL_VIDEOS_TABLE_NAME}'
             self._cursor.execute(q)
 
-            q = videos_create_table_query
-            self._cursor.execute(q)
-
-        except Exception:
-            pass
-
+            self._cursor.execute(videos_create_table_query)
+            self.LOGGER.info(f'Reset SQL table success.')
+        except Exception as e:
+            self.LOGGER.error(f'Failed to reset SQL table. {e}')
 
 
 if __name__ == '__main__':

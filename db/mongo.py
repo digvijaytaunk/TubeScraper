@@ -14,6 +14,7 @@ class MongoDb:
         self._collection = self._database_name[MONGO_DB_COLLECTION_NAME]
 
     def save_comments(self, videos: List[Video]):
+        self.LOGGER.info(f'Initiated saving comments to Mongo.')
         data_list = []
         for video in videos:
             data = {
@@ -24,10 +25,10 @@ class MongoDb:
             data_list.append(data)
 
         try:
-            self.LOGGER.debug('This is a DEBUG log record FROM MONGO MONGO MONGO MONGO MONGODB.')
+            self.LOGGER.info(f'Saving comment {data_list}.')
             self._collection.insert_many(data_list)
         except Exception as e:
-            print(e)
+            self.LOGGER.error(f'Failed to save comments. {e}.')
             return False
 
         return True
@@ -35,4 +36,5 @@ class MongoDb:
     def reset_collection(self):
         self._collection.drop()
         self._database_name.create_collection(MONGO_DB_COLLECTION_NAME)
+        self.LOGGER.info(f'Reset MongoDB done.')
 

@@ -92,8 +92,13 @@ Set the value of following environment variable for local as well as deployment 
             {
                'comment_author'
                'message'
-               'replies': []
-            }
+               'replies': [
+                  {
+                     'comment_author'
+                     'message'
+                  },
+               ]
+            },
          ]
       }
 
@@ -103,7 +108,7 @@ Set the value of following environment variable for local as well as deployment 
 
 # Deploy
 
-Deployment is done at 3 platforms - 
+Deployment is done on 3 platforms - 
 
 ## Heroku
    
@@ -121,7 +126,7 @@ Deployment is done at 3 platforms -
 As this is a hobby project, deployment is done on free tier of cloud platform. To keep the resources under limit,
 this endpoint deletes all data from all the databases as well as video files from S3 bucket.
 
-      method = GET /admin/db/reset
+      GET /admin/db/reset
 
 
 # Use Tubescraper
@@ -149,6 +154,7 @@ extracted
 2. **No. of videos to scrape**: Max limit is set to be equal to or less than 50 videos. However there is a maximum limit to fetch 
 the data from Youtube API is 256.
    
+
 3. **Upload to S3**: Flag to save the video into S3 bucket. Fetching Stream data from Youtube API takes a lot of 
    time and multiplies as the video count increases and also the process of downloading multiple files from youtube and 
    uploading to S3 is not Asynchronous which causes SESSION TIMEOUT error. 
