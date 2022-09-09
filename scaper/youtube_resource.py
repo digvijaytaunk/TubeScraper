@@ -17,10 +17,11 @@ from pytube import YouTube
 
 # TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url: str, extract_stream_info: bool, scrape_count: int = 50):
+    def __init__(self, url: str, extract_stream_info: bool, logger,  scrape_count: int = 50):
         self._input_url = url
         self.extract_stream_info = extract_stream_info
         self._scrape_count = scrape_count
+        self.logger = logger
         self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
         self.final_result = None
@@ -37,6 +38,8 @@ class YoutubeResource:
         api_version = "v3"
         yt = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=API_KEY)
+
+        self.logger.info('Youtube object build successfully')
         return yt
 
     def _input_video_response(self) -> Dict:
@@ -47,6 +50,7 @@ class YoutubeResource:
         try:
             request = self.youtube.videos().list(part="snippet,contentDetails,statistics", id=self._input_video_id)
             res = request.execute()
+            self.logger.info(f'Response for input URL: {res}')
             return res
         except Exception as e:
             return {}
@@ -57,7 +61,10 @@ class YoutubeResource:
         :return: str: channel id
         """
         res = self._input_video_response()
-        return res['items'][0]['snippet']['channelId']
+        channel_id = res['items'][0]['snippet']['channelId']
+        self.logger.info(f'Fetched channel id - {channel_id}.')
+
+        return channel_id
 
     def get_channel_title(self):
         """
@@ -65,7 +72,9 @@ class YoutubeResource:
         :return: str: channel title
         """
         res = self._input_video_response()
-        return res['items'][0]['snippet']['channelTitle']
+        title = res['items'][0]['snippet']['channelTitle']
+        self.logger.info(f'Fetched channel title - {title}.')
+        return title
 
     def scrape(self) -> Dict:
         """
@@ -81,11 +90,11 @@ class YoutubeResource:
         channel_uid = self.get_channel_id()
 
         video_object_list = self._get_videos_info(channel_uid)
-        sql_obj = MySql()
+        sql_obj = MySql(self.logger)
         youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
-        videos_save_status = sql_obj.save_videos(video_object_list)  # TODO SQL syntex error
+        videos_save_status = sql_obj.save_videos(video_object_list)
 
-        mongo_obj = MongoDb()
+        mongo_obj = MongoDb(self.logger)
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
@@ -145,8 +154,11 @@ class YoutubeResource:
                     comment_thread=comments
                 )
                 result.append(v)
+
         except Exception as e:
-            print(e)
+            self.logger.error(f'Error occurred while fetching Video info - {e}')
+
+        self.logger.info(f'Video info - {result}')
         return result
 
     def get_video_statistics(self, video_id: str) -> Dict:
@@ -155,6 +167,7 @@ class YoutubeResource:
         :param video_id: str: id of video
         :return: Dict{views: int, likes: int, comment_count: int} Dictionary with key - views, likes, comment_count
         """
+        self.logger.info(f'Fetching video stats for id - {video_id}')
         request = self.youtube.videos().list(
             part="statistics",
             id=video_id
@@ -166,7 +179,7 @@ class YoutubeResource:
             'likes': int(response['items'][0]['statistics']['likeCount']),
             'comment_count': int(response['items'][0]['statistics']['commentCount'])
         }
-
+        self.logger.info(f'Video stats - {dic}')
         return dic
 
     def get_comments(self, video_id) -> List[Dict]:
@@ -175,6 +188,7 @@ class YoutubeResource:
         :param video_id: ID of video
         :return: List[Dict{comment_author, message}]: List of dictionary with key - 'comment_author' & 'message'
         """
+        self.logger.info(f'Fetching video comments for id - {video_id}')
         request = self.youtube.commentThreads().list(
             part="snippet,replies",
             videoId=video_id
@@ -196,6 +210,8 @@ class YoutubeResource:
                     replies.append({'comment_auther': author, 'message': msg})
             data = {'top_msg': top_level_msg, 'top_author': top_level_auther, 'replies': replies}  # 'data':top_level_date
             comments_list.append(data)
+
+        self.logger.info(f'Comments for id - {video_id} is - {comments_list}')
         return comments_list
 
     def get_latest_published_video(self, channel_id: str) -> List[Dict]:
@@ -204,8 +220,10 @@ class YoutubeResource:
         :param channel_id: ID of the video passed through the html form
         :return: List[Dict]: List of Dictionary of snippet received from Data API
         """
+        self.logger.info(f'Fetching latest published video for channel id - {channel_id}')
         all_videos_data = self.get_all_videos_from_response(channel_id)
         sorted_by_date = list(reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
+        self.logger.info(f'All published video for channel id - {sorted_by_date}')
         return sorted_by_date[:self._scrape_count]
 
     def get_all_videos_from_response(self, channel_id: str) -> List[Dict]:
@@ -214,6 +232,7 @@ class YoutubeResource:
         :param channel_id: str: Channel ID
         :return:
         """
+        self.logger.info(f'Fetching all video for channel id - {channel_id}')
         request = self.youtube.activities().list(
             part="snippet, contentDetails",
             channelId=channel_id,
@@ -229,6 +248,7 @@ class YoutubeResource:
             response = request.execute()
             all_videos.extend(response['items'])
 
+        self.logger.info(f'All videos for channel id - {channel_id} is {all_videos}')
         return all_videos
 
     def get_channel_detail_from_input_url(self, v_id: str) -> Dict:
@@ -238,21 +258,23 @@ class YoutubeResource:
         :return: {channel_id: value, channel_title: value}
         """
         try:
+            self.logger.info(f'Fetching channel details for video id - {v_id}')
             request = self.youtube.videos().list(part="snippet,contentDetails,statistics", id=v_id)
             res = request.execute()
 
             first_item = res['items'][0]
             channel_id = first_item['snippet']['channelId']
             channel_title = first_item['snippet']['channelTitle']
-
+            self.logger.info(f'Channel details for first video - {first_item}')
             return {'channel_id': channel_id, 'channel_title': channel_title}
         except Exception as e:
-            print(e)
+            self.logger.error(f'Failed to fetch channel details from video ID - {v_id}. {e}')
             return {}
 
     def _download(self, url: str, file_name: str):
         pyt = YouTube(url)
         try:
+            self.logger.info(f'Fetching stream data for video from url - {url}')
             streams = pyt.streams
 
             # stream = streams.get_by_resolution('144p')  # Video resolution i.e. "720p", "480p", "360p", "240p", "144p"
@@ -268,11 +290,13 @@ class YoutubeResource:
             if stream is None:
                 stream = streams.get_by_resolution('480p')
                 ext = 'mp4'
+            self.logger.info(f'Downloading video from stream - {stream}')
             stream.download(output_path=self.download_path, filename=f'{file_name}{ext}')
         except Exception as e:
-            print(e)
+            self.logger.error(f'Failed to download video from url - {url}. {e}')
 
     def _upload_to_s3(self):
+        self.logger.info(f'Uploading to S3 initiated.')
         client = boto3.client('s3', aws_access_key_id=S3_ACCESS_KEY_ID, aws_secret_access_key=SECRET_ACCESS_KEY)
         bucket_location = client.get_bucket_location(Bucket=BUCKET_NAME)
 
@@ -280,20 +304,24 @@ class YoutubeResource:
             f = os.path.join(self.download_path, filename)
             if os.path.isfile(f):
                 try:
+                    self.logger.info(f'Uploading file - {f}')
                     client.upload_file(f, BUCKET_NAME, filename)
                     object_url = f'https://s3-{bucket_location["LocationConstraint"]}.amazonaws.com/{BUCKET_NAME}/{filename}'
                     self.s3_urls.append(object_url)
+                    self.logger.info(f'S3 url - {object_url}')
 
                 except ClientError as e:
-                    print(f'invalid credentials {e}')
+                    self.logger.error(f'Invalid credentials {e}')
+
                 except Exception as e:
-                    print(f'{e}')
+                    self.logger.error(f'Failed to upload to S3 - {f}. {e}')
 
     def _extract_video_id(self) -> str:
         """
         Function to extract value of 'v' parameter from url provided in html form
         :return: str: id of video
         """
+        self.logger.info(f'Extracting video ID from {self._input_url}.')
         if '?' in self._input_url:
             parts = self._input_url.split('?')
             args = parts[-1]
@@ -302,8 +330,9 @@ class YoutubeResource:
             for i in range(len(args_parts)):
                 args_n_vals = args_parts[i].split('=')
                 dic[args_n_vals[0]] = args_n_vals[1]
-
-            return dic.get('v')
+            i = dic.get('v')
+            self.logger.info(f'Video ID from {self._input_url} - {i}.')
+            return i
 
     def _map_s3_url(self, videos: List[Video]) -> List[Video]:
         for url in self.s3_urls:
@@ -312,7 +341,7 @@ class YoutubeResource:
             obj = [video for video in videos if video.videoId == file_name_without_ext]
             if len(obj) == 1:
                 obj[0].s3_url = url
-
+        self.logger.info(f'S3 mapped video list is - {videos}.')
         return videos
 
 

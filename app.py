@@ -1,3 +1,5 @@
+import logging
+
 import boto3
 from flask import Flask, render_template, request
 
@@ -8,6 +10,12 @@ from globs import BUCKET_NAME, S3_ACCESS_KEY_ID, SECRET_ACCESS_KEY
 from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
+
+
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -24,15 +32,18 @@ def root():
         count_str = request.form.get('videoCount').strip()
         upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
+        app.logger.info(f'POST - Fetch request for {url}, {scrape_count} videos, Upload status - {upload}')
         if not validate_url(url):
+            app.logger.warning(f'POST - Fetch request for {url}, Invalid url {url}')
             return render_template('index.html', data={'status': "URL not recognised. "
                                                                  "Please provide youtube video link only. "
                                                                  "Must contain 'youtube.com/watch' string"})
 
         upload_to_s3 = True if upload else False
-        yt = YoutubeResource(url, upload_to_s3, scrape_count)
+        app.logger.info(f'Started scraping process...')
+        yt = YoutubeResource(url, upload_to_s3, app.logger, scrape_count)
         result = yt.scrape()
-
+        app.logger.info(f'Scraping process completed.')
         return render_template('result.html', data=result)
 
 
@@ -44,9 +55,9 @@ def clear_mongo_collection():
     Also Deletes all files stored in S3 bucket.
     :return:
     """
-    mongo_obj = MongoDb()
+    mongo_obj = MongoDb(app.logger)
     mongo_obj.reset_collection()
-    sql = MySql()
+    sql = MySql(app.logger)
     sql.reset_tables()
 
     # Delete all items from bucket
