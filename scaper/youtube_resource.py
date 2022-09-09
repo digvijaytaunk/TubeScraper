@@ -98,9 +98,10 @@ class YoutubeResource:
         save_comments_status = mongo_obj.save_comments(video_object_list)
 
         if self.extract_stream_info:
-            self._upload_to_s3()
+            self._upload_to_s3(video_object_list)
 
-        self._map_s3_url(video_object_list)
+            video_object_list = self._map_s3_url(video_object_list)
+            sql_obj.update_s3_address(video_object_list)
 
         data = {
             'channel_title': channel_title,
@@ -295,12 +296,16 @@ class YoutubeResource:
         except Exception as e:
             self.logger.error(f'Failed to download video from url - {url}. {e}')
 
-    def _upload_to_s3(self):
+    def _upload_to_s3(self, videos: List[Video]):
         self.logger.info(f'Uploading to S3 initiated.')
         client = boto3.client('s3', aws_access_key_id=S3_ACCESS_KEY_ID, aws_secret_access_key=SECRET_ACCESS_KEY)
         bucket_location = client.get_bucket_location(Bucket=BUCKET_NAME)
+        files_to_upload = [video.videoId for video in videos]
 
         for filename in os.listdir(self.download_path):
+            if filename.split('.')[0] not in files_to_upload:
+                continue
+
             f = os.path.join(self.download_path, filename)
             if os.path.isfile(f):
                 try:

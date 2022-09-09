@@ -77,6 +77,23 @@ class MySql:
         self.LOGGER.info(f'Youtuber data saved to SQL DB STATUS {status["status"]}.')
         return {'status': STATUS.SUCCESS} if status['status'] == STATUS.SUCCESS else {'status': STATUS.FAIL}
 
+    def update_s3_address(self, video_list: List[Video]):
+        for video in video_list:
+            if video.s3_url != '':
+                self._update_s3_address(video)
+
+    def _update_s3_address(self, video: Video) -> bool:
+        query = f'UPDATE {MY_SQL_DATABASE}.{MY_SQL_VIDEOS_TABLE_NAME} SET `s3_link` = "{video.s3_url}" WHERE `video_id` = "{video.videoId}"'
+        try:
+            self.LOGGER.info(f'Updating S3 url for video ID - {video.videoId}')
+            self._cursor.execute(query)
+            self._connection.commit()
+        except Exception as e:
+            self.LOGGER.error(f'Failed to update S3 url for video ID {video.videoId}. {e}.')
+            return False
+
+        return True
+
     def _is_channel_exists(self, channel_id: str) -> bool:
         """
         Checks if the channel id exists in youtuber database table
@@ -114,7 +131,7 @@ class MySql:
         self.LOGGER.info(f'Initialised writing video data to SQl DB.')
         value_params = []
         for video in video_list:
-            value_params.append(f'("{video.channel_id}", "{video.videoId}", "{video.title}", "{video.watch_url}", "s3_link", "{video.likes}", "{video.comment_count}", "{video.views}","{video.thumbnail_url}")')
+            value_params.append(f'("{video.channel_id}", "{video.videoId}", "{video.title}", "{video.watch_url}", "", "{video.likes}", "{video.comment_count}", "{video.views}","{video.thumbnail_url}")')
 
         values = ', '.join(value_params)
         query = f'INSERT INTO {MY_SQL_DATABASE}.{MY_SQL_VIDEOS_TABLE_NAME} ' \

@@ -6,13 +6,13 @@ videos_create_table_query = f'CREATE TABLE `{MY_SQL_DATABASE}`.`{MY_SQL_VIDEOS_T
                             '  `index` INT NOT NULL AUTO_INCREMENT,' \
                             '  `channel_id` VARCHAR(45) NOT NULL,' \
                             '  `video_id` VARCHAR(45) NOT NULL,' \
-                            '  `title` VARCHAR(45) NOT NULL,' \
-                            '  `youtube_link` VARCHAR(45) NOT NULL,' \
-                            '  `s3_link` VARCHAR(45) NULL,' \
+                            '  `title` VARCHAR(200) NOT NULL,' \
+                            '  `youtube_link` VARCHAR(200) NOT NULL,' \
+                            '  `s3_link` VARCHAR(200) NULL,' \
                             '  `likes` INT NULL,' \
                             '  `comments_count` INT NULL,' \
                             '  `views` INT NULL,' \
-                            '  `thumbnail_link` VARCHAR(45) NULL,' \
+                            '  `thumbnail_link` VARCHAR(200) NULL,' \
                             '  PRIMARY KEY (`index`),' \
                             '  UNIQUE INDEX `video_id_UNIQUE` (`video_id` ASC) VISIBLE);'
 
