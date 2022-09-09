@@ -3,6 +3,7 @@ from enum import Enum
 
 API_KEY = os.getenv('GCP_TUBESCRAPER_API_KEY')
 DB_PORT = 3306
+DOWNLOAD_PATH = '~/Downloads'
 
 MY_SQL_USER = os.getenv('AWS_MYSQL_MASTER_USER')
 MY_SQL_PASSWORD = os.getenv('AWS_MYSQL_MASTER_PASSWORD')

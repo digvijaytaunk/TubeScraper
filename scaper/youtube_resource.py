@@ -10,22 +10,22 @@ import requests
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
-from globs import API_KEY, SECRET_ACCESS_KEY, S3_ACCESS_KEY_ID, BUCKET_NAME
+from globs import API_KEY, SECRET_ACCESS_KEY, S3_ACCESS_KEY_ID, BUCKET_NAME, DOWNLOAD_PATH
 from scaper.video import Video
 from pytube import YouTube
 
 
-# TODO split this file into 2 files. 1 file contains all that calls youtube api
 class YoutubeResource:
-    def __init__(self, url: str, extract_stream_info: bool, logger,  scrape_count: int = 50):
+    def __init__(self, url: str, extract_stream_info: bool, logger, scrape_count: int = 50):
         self._input_url = url
         self.extract_stream_info = extract_stream_info
         self._scrape_count = scrape_count
         self.logger = logger
-        self._input_video_id = self._extract_video_id()
         self.youtube = self._build_youtube()
+        self._input_video_id = self._extract_video_id()
+        self._input_channel_id = self._get_channel_id_by_search_query()
         self.final_result = None
-        self.download_path = '~/Downloads'
+        self.download_path = DOWNLOAD_PATH
         self.s3_urls = []
 
     def _build_youtube(self):
@@ -42,6 +42,12 @@ class YoutubeResource:
         self.logger.info('Youtube object build successfully')
         return yt
 
+    def _input_channel_response(self) -> Dict:
+        """
+       Fetch all the available data from Youtube API related to provided Channel
+       :return: Dict
+       """
+
     def _input_video_response(self) -> Dict:
         """
         Fetch all the available data from Youtube API related to provided video
@@ -57,22 +63,33 @@ class YoutubeResource:
 
     def get_channel_id(self):
         """
-        Get channel ID from input video
+        Get channel ID from input video ID or Videos URL or channel main page URL
         :return: str: channel id
         """
-        res = self._input_video_response()
-        channel_id = res['items'][0]['snippet']['channelId']
-        self.logger.info(f'Fetched channel id - {channel_id}.')
+        if self._input_video_id:
+            res = self._input_video_response()
+            channel_id = res['items'][0]['snippet']['channelId']
+            self.logger.info(f'Fetched channel id from Video ID - {channel_id}.')
+            self._input_channel_id = channel_id
+            return channel_id
 
-        return channel_id
+        if self._input_channel_id:
+            self.logger.info(f'Fetched channel id from Search URL- {self._input_channel_id}.')
+            return self._input_channel_id
 
     def get_channel_title(self):
         """
-        Get channel title from input video
+        Get channel title from channel ID
         :return: str: channel title
         """
-        res = self._input_video_response()
-        title = res['items'][0]['snippet']['channelTitle']
+
+        request = self.youtube.activities().list(
+            part="snippet",
+            channelId=self._input_channel_id,
+            maxResults=10,
+        )
+        response = request.execute()
+        title = response['items'][0]['snippet']['channelTitle']
         self.logger.info(f'Fetched channel title - {title}.')
         return title
 
@@ -81,13 +98,16 @@ class YoutubeResource:
         Public method to start all data processing
         :return:
         """
-        video_id = self._extract_video_id()
 
-        if video_id == '' or API_KEY == '' or API_KEY is None:
-            return {'status': 'Failed to process. Check Video ID or Youtube Data API Key'}
+        video_id = self._input_video_id
+        channel_id = self._input_channel_id
 
-        channel_title = self.get_channel_title()
+        if (video_id == '' and channel_id == '') or API_KEY == '' or API_KEY is None:
+            return {'status': 'Failed to process. Check Video or channel URL or Youtube Data API Key'}
+
+
         channel_uid = self.get_channel_id()
+        channel_title = self.get_channel_title()
 
         video_object_list = self._get_videos_info(channel_uid)
         sql_obj = MySql(self.logger)
@@ -209,7 +229,8 @@ class YoutubeResource:
                     author = reply['snippet']['authorDisplayName']
                     # reply_date = reply['snippet']['publishedAt']
                     replies.append({'comment_auther': author, 'message': msg})
-            data = {'top_msg': top_level_msg, 'top_author': top_level_auther, 'replies': replies}  # 'data':top_level_date
+            data = {'top_msg': top_level_msg, 'top_author': top_level_auther,
+                    'replies': replies}  # 'data':top_level_date
             comments_list.append(data)
 
         self.logger.info(f'Comments for id - {video_id} is - {comments_list}')
@@ -223,7 +244,8 @@ class YoutubeResource:
         """
         self.logger.info(f'Fetching latest published video for channel id - {channel_id}')
         all_videos_data = self.get_all_videos_from_response(channel_id)
-        sorted_by_date = list(reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
+        sorted_by_date = list(
+            reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
         self.logger.info(f'All published video for channel id - {sorted_by_date}')
         return sorted_by_date[:self._scrape_count]
 
@@ -322,6 +344,51 @@ class YoutubeResource:
                     self.logger.error(f'Failed to upload to S3 - {f}. {e}')
 
     def _extract_video_id(self) -> str:
+        watch_url = 'youtube.com/watch'
+
+        if watch_url in self._input_url:
+            return self._extract_video_id_from_v_param()
+
+        return ''
+
+    def _get_channel_id_by_search_query(self) -> str:
+        """
+        Return channel ID from Youtube Data API using search endpoint
+        :return: str
+        """
+        channel_url = ['/c/', '/user/', '/channel/']
+
+        # Hardcoded because unable to find Hitesh Chaudhry's channel with channel URL.
+        if 'HiteshChoudharydotcom' in self._input_url:
+            return 'UCXgGY0wkgOzynnHvSEVmE3A'
+
+        for tag in channel_url:
+            if tag in self._input_url:
+                search_tag = self._get_search_tag_from_url()
+                request = self.youtube.search().list(part="snippet", maxResults=5, q=search_tag)
+                res = request.execute()
+                if res:
+                    return res['items'][0]['snippet']['channelId']
+
+        return ''
+
+    def _get_search_tag_from_url(self) -> str:
+        """
+        Returns text passed in url as a search identifier for channel.
+        f.ex. Returns 'krishnaik06' in https://www.youtube.com/user/krishnaik06
+        f.ex. Returns 'Telusko' in https://www.youtube.com/c/Telusko
+        f.ex. Returns 'UCjWY5hREA6FFYrthD0rZNIw' in https://www.youtube.com/channel/UCjWY5hREA6FFYrthD0rZNIw
+        f.ex. Returns 'HiteshChoudharydotcom' in https://www.youtube.com/c/HiteshChoudharydotcom
+        f.ex. Returns 'saurabhexponent1' in https://www.youtube.com/user/saurabhexponent1/videos
+
+        :return: str
+        """
+        youtube_split = self._input_url.split('/')
+        youtube_index = [youtube_split.index(item) for item in youtube_split if 'youtube' in item][0]
+
+        return youtube_split[youtube_index + 2]
+
+    def _extract_video_id_from_v_param(self) -> str:
         """
         Function to extract value of 'v' parameter from url provided in html form
         :return: str: id of video

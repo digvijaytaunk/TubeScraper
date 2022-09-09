@@ -140,7 +140,9 @@ extracted
 1. **Video Url**: Url of the video of a channel for which the data needs to be fetched. It supports the different url 
    patters like below mention. It should be a youtube.com domain & must be a '/watch' endpoint with parameter 'v'. 
        
-       
+
+`/watch` Endpoints - 
+   
       https://www.youtube.com/watch?v=QXeEoD0pB3E
 
       https://www.youtube.com/watch?v=FHfZ5X7qn1I&list=PLsyeobzWxl7pGh8x5C2hsu3My4ei-eX1Y
@@ -148,6 +150,25 @@ extracted
       https://www.youtube.com/watch?v=2fXQvy0kFak&ab_channel=HiteshChoudhary
 
       https://www.youtube.com/watch?v=EMEvheCVhMk&list=PL7ersPsTyYt2Q-SqZxTA1D-melSfqBRMW&ab_channel=MySirG.com
+   
+
+`/user` Endpoint 
+
+      https://www.youtube.com/user/krishnaik06
+
+      https://www.youtube.com/user/saurabhexponent1/videos
+
+
+`/c` Endpoint 
+      
+      https://www.youtube.com/c/HiteshChoudharydotcom
+
+      https://www.youtube.com/c/Telusko
+
+
+`/channel` Endpoint
+
+        https://www.youtube.com/channel/UCjWY5hREA6FFYrthD0rZNIw
 
 
        

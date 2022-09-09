@@ -74,8 +74,16 @@ def validate_url(url: str) -> bool:
     :param url: str
     :return: Bool
     """
-    string_to_find = 'youtube.com/watch'
-    return True if string_to_find in url else False
+    watch_url = 'youtube.com/watch'
+    channel_url = ['/c/', '/user/', '/channel/']
+    if watch_url in url:
+        return True
+
+    for tag in channel_url:
+        if tag in url:
+            return True
+
+    return False
 
 
 def _validate_count(count_str: str) -> int:
