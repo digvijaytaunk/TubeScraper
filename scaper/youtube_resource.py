@@ -215,10 +215,17 @@ class YoutubeResource:
             videoId=video_id
         )
         response = request.execute()
-
+        response_list = response['items']
         comments_list = []
 
-        for item in response['items']:
+        while response.get('nextPageToken'):
+            request = self.youtube.commentThreads().list(part="snippet,replies",
+                                                         videoId=video_id,
+                                                         pageToken=response['nextPageToken'])
+            response = request.execute()
+            response_list.extend(response['items'])
+
+        for item in response_list:
             top_level_msg = item['snippet']['topLevelComment']['snippet']['textDisplay']
             top_level_auther = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
             top_level_date = item['snippet']['topLevelComment']['snippet']['publishedAt']
@@ -228,7 +235,7 @@ class YoutubeResource:
                     msg = reply['snippet']['textDisplay']
                     author = reply['snippet']['authorDisplayName']
                     # reply_date = reply['snippet']['publishedAt']
-                    replies.append({'comment_auther': author, 'message': msg})
+                    replies.append({'comment_author': author, 'message': msg})
             data = {'top_msg': top_level_msg, 'top_author': top_level_auther,
                     'replies': replies}  # 'data':top_level_date
             comments_list.append(data)

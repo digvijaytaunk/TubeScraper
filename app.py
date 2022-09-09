@@ -10,7 +10,7 @@ from globs import BUCKET_NAME, S3_ACCESS_KEY_ID, SECRET_ACCESS_KEY
 from scaper.youtube_resource import YoutubeResource
 
 app = Flask(__name__, static_folder="static")
-
+app.scrape_result = {}
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
@@ -42,9 +42,17 @@ def root():
         upload_to_s3 = True if upload else False
         app.logger.info(f'Started scraping process...')
         yt = YoutubeResource(url, upload_to_s3, app.logger, scrape_count)
-        result = yt.scrape()
+        app.scrape_result = yt.scrape()
         app.logger.info(f'Scraping process completed.')
-        return render_template('result.html', data=result)
+        return render_template('result.html', data=app.scrape_result)
+
+
+@app.route('/comments')
+def comments():
+    vid = request.args['vid']
+    video = [video for video in app.scrape_result['videos'] if video.videoId == vid][0]
+
+    return render_template('comments.html', data=video.comment_thread)
 
 
 # For maintenance only

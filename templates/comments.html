@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <table id="data" class="container table text-light" >
+    <thead>
+      <tr>
+        <th>Sr. No</th>
+        <th>Comment Author</th>
+        <th>Comment</th>
+        <th>Replies</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in data %}
+        <tr class="container table text-light">
+          <td class="align-middle">{{ loop.index }}</td>
+          <td class="align-middle">{{ item['top_author'] }}</td>
+          <td class="align-middle">{{ item['top_msg'] }}</td>
+          <td class="align-middle">{{ item['replies'] }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
