@@ -22,6 +22,9 @@ MONGO_DB_COLLECTION_NAME = 'comments_collection'
 
 MONGO_CONNECTION_STRING = os.getenv('MONGO_CONNECTION_STRING')
 
+# Flag to disable Cloud Database for cost saving mode
+ENABLE_CLOUD_DB = os.getenv('ENABLE_CLOUD_DB')
+MAINTENANCE_MODE = os.getenv('MAINTENANCE_MODE')
 
 class STATUS(Enum):
     FAIL = 'fail'

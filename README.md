@@ -46,6 +46,11 @@ Set the value of following environment variable for local as well as deployment 
 
 `SECRET_ACCESS_KEY`: User access key secret
 
+`ENABLE_CLOUD_DB` : Boolean flag to specify whether to use cloud database to save data or not 
+
+`MAINTENANCE_MODE` = Boolean flag temporary disable the functionality
+
+
 ## Database Schema
 
 ### AWS RDS - MySql 

@@ -5,7 +5,7 @@ from flask import Flask, render_template, request
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
-from globs import BUCKET_NAME, S3_ACCESS_KEY_ID, SECRET_ACCESS_KEY
+from globs import BUCKET_NAME, S3_ACCESS_KEY_ID, SECRET_ACCESS_KEY, MAINTENANCE_MODE
 
 from scaper.youtube_resource import YoutubeResource
 
@@ -25,6 +25,9 @@ def root():
     :return:
     """
     if request.method == 'GET':
+        if MAINTENANCE_MODE:
+            return render_template('maintenance.html')
+
         return render_template('index.html')
 
     if request.method == 'POST':

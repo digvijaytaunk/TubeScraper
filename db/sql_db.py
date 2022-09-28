@@ -11,11 +11,21 @@ from scaper.video import Video
 class MySql:
 
     def __init__(self, logger):
-        self._connection = connection.connect(host=MY_SQL_HOST, user=MY_SQL_USER, password=MY_SQL_PASSWORD)
-        self._cursor = self._connection.cursor()
         self.LOGGER = logger
 
-    def save_videos(self, all_videos: List[Video]) -> bool:
+    def _get_connection(self):
+        try:
+            obj = connection.connect(host=MY_SQL_HOST, user=MY_SQL_USER, password=MY_SQL_PASSWORD)
+            return obj
+        except:
+            return None
+
+    def get_cursor(self):
+        if not self._get_connection():
+            return None
+        return self._get_connection().cursor()
+
+    def save_videos(self, all_videos: List[Video]) -> Dict:
         """
         Saves the passed video to database if does not exists already
         :param all_videos: LIst[Video]: List if Video object
@@ -36,10 +46,10 @@ class MySql:
             self.LOGGER.warning('All the latest videos already saved in database.')
         except Exception as e:
             self.LOGGER.error(f'Failed to write to SQl DB. {e}')
-            return False
+            return {'status': STATUS.FAIL}
 
         self.LOGGER.info('Writing to SQl DB success.')
-        return True
+        return {'status': STATUS.SUCCESS}
 
     def _get_saved_video_id(self, channel_id: str) -> List[str]:
         """
@@ -49,8 +59,9 @@ class MySql:
         """
         query = f'SELECT `video_id` FROM {MY_SQL_DATABASE}.{MY_SQL_VIDEOS_TABLE_NAME} WHERE `channel_id`="{channel_id}"'
         self.LOGGER.info(f'Fetching saved video with SQl query {query}.')
-        self._cursor.execute(query)
-        res = self._cursor.fetchall()
+        cursor = self.get_cursor()
+        cursor.execute(query)
+        res = cursor.fetchall()
         saved_id = []
         for item in res:
             saved_id.append(item[0])

@@ -10,7 +10,7 @@ import requests
 
 from db.mongo import MongoDb
 from db.sql_db import MySql
-from globs import API_KEY, SECRET_ACCESS_KEY, S3_ACCESS_KEY_ID, BUCKET_NAME, DOWNLOAD_PATH
+from globs import API_KEY, SECRET_ACCESS_KEY, S3_ACCESS_KEY_ID, BUCKET_NAME, DOWNLOAD_PATH, STATUS, ENABLE_CLOUD_DB
 from scaper.video import Video
 from pytube import YouTube
 
@@ -105,23 +105,32 @@ class YoutubeResource:
         if (video_id == '' and channel_id == '') or API_KEY == '' or API_KEY is None:
             return {'status': 'Failed to process. Check Video or channel URL or Youtube Data API Key'}
 
-
         channel_uid = self.get_channel_id()
         channel_title = self.get_channel_title()
 
         video_object_list = self._get_videos_info(channel_uid)
         sql_obj = MySql(self.logger)
-        youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
-        videos_save_status = sql_obj.save_videos(video_object_list)
 
-        mongo_obj = MongoDb(self.logger)
-        save_comments_status = mongo_obj.save_comments(video_object_list)
+        if ENABLE_CLOUD_DB:
+            if sql_obj.get_cursor():
+                youtuber_save_status = sql_obj.save_youtuber_data(video_object_list[0])
+                videos_save_status = sql_obj.save_videos(video_object_list)
 
-        if self.extract_stream_info:
-            self._upload_to_s3(video_object_list)
+                mongo_obj = MongoDb(self.logger)
+                save_comments_status = mongo_obj.save_comments(video_object_list)
 
-            video_object_list = self._map_s3_url(video_object_list)
-            sql_obj.update_s3_address(video_object_list)
+            else:
+                youtuber_save_status = {'status': STATUS.FAIL}
+                videos_save_status = {'status': STATUS.FAIL}
+
+            if self.extract_stream_info:
+                self._upload_to_s3(video_object_list)
+
+                video_object_list = self._map_s3_url(video_object_list)
+                sql_obj.update_s3_address(video_object_list)
+        else:
+            youtuber_save_status = {'status': 'Disabled by Admin'}
+            videos_save_status = {'status': 'Disabled by Admin'}
 
         data = {
             'channel_title': channel_title,
@@ -129,7 +138,7 @@ class YoutubeResource:
             'videos': video_object_list,
             'vidCount': len(video_object_list),
             'youtuber_save_status': youtuber_save_status['status'],
-            'video_save_status': videos_save_status,
+            'video_save_status': videos_save_status['status'],
             'status': 'success'
         }
         self.final_result = data
