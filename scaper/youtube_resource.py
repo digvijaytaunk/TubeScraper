@@ -83,13 +83,17 @@ class YoutubeResource:
         :return: str: channel title
         """
 
-        request = self.youtube.activities().list(
+        request = self.youtube.channels().list(
             part="snippet",
-            channelId=self._input_channel_id,
+            id=self._input_channel_id,
             maxResults=10,
         )
         response = request.execute()
-        title = response['items'][0]['snippet']['channelTitle']
+        try:
+            title = response['items'][0]['snippet']['title']
+        except:
+            title = "Unable to fetch Channel Title"
+
         self.logger.info(f'Fetched channel title - {title}.')
         return title
 
@@ -152,7 +156,7 @@ class YoutubeResource:
         """
         videos = self.get_latest_published_video(channel_id)
         result = []
-
+        channel_title = self.get_channel_title()
         try:
             for video in videos:
                 video_id = video['contentDetails']['upload']['videoId']
@@ -172,7 +176,7 @@ class YoutubeResource:
                 v = Video(
                     video_id=video_id,
                     channel_id=video['snippet']['channelId'],
-                    channel_name=video['snippet']['channelTitle'],
+                    channel_name=channel_title,
                     published_at=datetime.fromisoformat(video['snippet']['publishedAt']),
                     title=title,
                     thumbnail_url=thumbnail_url[0],
@@ -260,8 +264,11 @@ class YoutubeResource:
         """
         self.logger.info(f'Fetching latest published video for channel id - {channel_id}')
         all_videos_data = self.get_all_videos_from_response(channel_id)
-        sorted_by_date = list(
-            reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
+        try:
+            sorted_by_date = list(
+                reversed(sorted(all_videos_data, key=lambda vid: datetime.fromisoformat(vid['snippet']['publishedAt']))))
+        except:
+            sorted_by_date = all_videos_data
         self.logger.info(f'All published video for channel id - {sorted_by_date}')
         return sorted_by_date[:self._scrape_count]
 
@@ -275,7 +282,7 @@ class YoutubeResource:
         request = self.youtube.activities().list(
             part="snippet, contentDetails",
             channelId=channel_id,
-            maxResults=50,
+            maxResults=self._scrape_count,
         )
         response = request.execute()
         all_videos = response['items']
