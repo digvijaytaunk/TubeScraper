@@ -33,16 +33,16 @@ def root():
     if request.method == 'POST':
         url = request.form.get('videosUrl')
         count_str = request.form.get('videoCount').strip()
-        upload = request.form.get('upload')
+        # upload = request.form.get('upload')
         scrape_count = _validate_count(count_str)
-        app.logger.info(f'POST - Fetch request for {url}, {scrape_count} videos, Upload status - {upload}')
+        app.logger.info(f'POST - Fetch request for {url}, {scrape_count} videos, Upload status')
         if not validate_url(url):
             app.logger.warning(f'POST - Fetch request for {url}, Invalid url {url}')
             return render_template('index.html', data={'status': "URL not recognised. "
                                                                  "Please provide youtube video link only. "
                                                                  "Must contain 'youtube.com/watch' string"})
 
-        upload_to_s3 = True if upload else False
+        upload_to_s3 = False
         app.logger.info(f'Started scraping process...')
         yt = YoutubeResource(url, upload_to_s3, app.logger, scrape_count)
         app.scrape_result = yt.scrape()
