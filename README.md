@@ -115,16 +115,16 @@ Set the value of following environment variable for local as well as deployment 
 
 Deployment is done on 3 platforms - 
 
-## Heroku
+## Heroku (decommissioned)
    
 [https://tubescraper.herokuapp.com/](https://tubescraper.herokuapp.com/)
     
 
-## AWS
+## AWS (decommissioned )
 [http://tubescraper-env.eba-kcbwec25.ap-south-1.elasticbeanstalk.com/](http://tubescraper-env.eba-kcbwec25.ap-south-1.elasticbeanstalk.com/)
     
 
-## Azure
+## Azure (Live, Takes a while to wake-up from sleep mode.)
 [https://tubescraperwebapp.azurewebsites.net/](https://tubescraperwebapp.azurewebsites.net/)
     
 ## Reset Database Endpoint
